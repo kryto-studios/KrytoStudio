@@ -30,6 +30,7 @@ export default function AdminDashboard() {
   const [newPortfolio, setNewPortfolio] = useState({ title: "", category: "Web Development", link: "" });
   const [savingPortfolio, setSavingPortfolio] = useState(false);
   const [portfolioFiles, setPortfolioFiles] = useState<FileList | null>(null);
+  const [selectedAppointmentIds, setSelectedAppointmentIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -197,9 +198,29 @@ export default function AdminDashboard() {
     const { error } = await supabase.from("appointments").delete().eq("id", id);
     if (!error) {
       setAppointments(prev => prev.filter(a => a.id !== id));
+      setSelectedAppointmentIds(prev => prev.filter(item => item !== id));
     } else {
       console.error(error);
       alert("Error deleting appointment.");
+    }
+  };
+
+  const handleBulkDeleteAppointments = async () => {
+    if (!confirm(`Are you sure you want to permanently delete the ${selectedAppointmentIds.length} selected appointment(s)? This cannot be undone.`)) return;
+    try {
+      const { error } = await supabase
+        .from("appointments")
+        .delete()
+        .in("id", selectedAppointmentIds);
+
+      if (error) throw error;
+
+      setAppointments(prev => prev.filter(a => !selectedAppointmentIds.includes(a.id)));
+      setSelectedAppointmentIds([]);
+      alert("Selected appointments deleted successfully!");
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to delete appointments: " + (err.message || err));
     }
   };
 
@@ -382,58 +403,107 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === "appointments" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="overflow-x-auto w-full">
-              <table className="w-full text-left border-collapse min-w-[700px]">
-                <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="py-4 text-gray-400 font-medium text-sm">Date</th>
-                    <th className="py-4 text-gray-400 font-medium text-sm">Name</th>
-                    <th className="py-4 text-gray-400 font-medium text-sm">Service</th>
-                    <th className="py-4 text-gray-400 font-medium text-sm">Contact</th>
-                    <th className="py-4 text-gray-400 font-medium text-sm">Status</th>
-                    <th className="py-4 text-gray-400 font-medium text-sm">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {appointments.map((a) => (
-                    <tr key={a.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                      <td className="py-4 text-sm text-gray-300">{new Date(a.date).toLocaleDateString()}</td>
-                      <td className="py-4 text-sm text-white font-medium">{a.name}</td>
-                      <td className="py-4 text-sm text-accent">{a.service}</td>
-                      <td className="py-4 text-sm text-gray-400">{a.email}<br/><span className="text-xs">{a.phone}</span></td>
-                      <td className="py-4 text-sm">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${a.status === 'done' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                          {a.status}
-                        </span>
-                      </td>
-                      <td className="py-4 flex gap-2">
-                        <button 
-                          onClick={() => setSelectedAppointment(a)}
-                          className="text-xs bg-accent/20 hover:bg-accent/30 text-accent px-3 py-1.5 rounded-lg transition-all"
-                        >
-                          View
-                        </button>
-                        <button 
-                          onClick={() => handleUpdateStatus(a.id, a.status)}
-                          className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-all"
-                        >
-                          Mark {a.status === 'pending' ? 'Done' : 'Pending'}
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteAppointment(a.id)}
-                          className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1"
-                          title="Delete Appointment"
-                        >
-                          <Trash2 size={13} /> Delete
-                        </button>
-                      </td>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 w-full">
+              
+              {/* Bulk Action Controls */}
+              {selectedAppointmentIds.length > 0 && (
+                <div className="flex items-center justify-between bg-red-500/10 border border-red-500/20 p-4 rounded-xl shadow-[0_0_15px_rgba(244,63,94,0.1)] mb-4 animate-pulse">
+                  <span className="text-red-400 text-xs md:text-sm font-semibold">
+                    {selectedAppointmentIds.length} appointment(s) selected
+                  </span>
+                  <button
+                    onClick={handleBulkDeleteAppointments}
+                    className="bg-red-500 hover:bg-red-650 text-white font-bold py-2.5 px-4 rounded-xl text-xs md:text-sm flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(239,68,68,0.4)] cursor-pointer"
+                  >
+                    <Trash2 size={14} /> Bulk Delete Selected
+                  </button>
+                </div>
+              )}
+
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-left border-collapse min-w-[750px]">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="py-4 pl-4 text-gray-400 font-medium text-sm w-10">
+                        <input
+                          type="checkbox"
+                          checked={
+                            appointments.length > 0 && 
+                            appointments.every(a => selectedAppointmentIds.includes(a.id))
+                          }
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedAppointmentIds(appointments.map(a => a.id));
+                            } else {
+                              setSelectedAppointmentIds([]);
+                            }
+                          }}
+                          className="w-4 h-4 accent-accent rounded border-white/10 bg-black/40 cursor-pointer focus:ring-0 focus:ring-offset-0"
+                        />
+                      </th>
+                      <th className="py-4 text-gray-400 font-medium text-sm">Date</th>
+                      <th className="py-4 text-gray-400 font-medium text-sm">Name</th>
+                      <th className="py-4 text-gray-400 font-medium text-sm">Service</th>
+                      <th className="py-4 text-gray-400 font-medium text-sm">Contact</th>
+                      <th className="py-4 text-gray-400 font-medium text-sm">Status</th>
+                      <th className="py-4 text-gray-400 font-medium text-sm">Action</th>
                     </tr>
-                  ))}
-                  {appointments.length === 0 && (
-                    <tr><td colSpan={6} className="py-8 text-center text-gray-500">No appointments found.</td></tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {appointments.map((a) => (
+                      <tr key={a.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                        <td className="py-4 pl-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedAppointmentIds.includes(a.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedAppointmentIds(prev => [...prev, a.id]);
+                              } else {
+                                setSelectedAppointmentIds(prev => prev.filter(id => id !== a.id));
+                              }
+                            }}
+                            className="w-4 h-4 accent-accent rounded border-white/10 bg-black/40 cursor-pointer focus:ring-0 focus:ring-offset-0"
+                          />
+                        </td>
+                        <td className="py-4 text-sm text-gray-300">{new Date(a.date).toLocaleDateString()}</td>
+                        <td className="py-4 text-sm text-white font-medium">{a.name}</td>
+                        <td className="py-4 text-sm text-accent">{a.service}</td>
+                        <td className="py-4 text-sm text-gray-400">{a.email}<br/><span className="text-xs">{a.phone}</span></td>
+                        <td className="py-4 text-sm">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${a.status === 'done' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                            {a.status}
+                          </span>
+                        </td>
+                        <td className="py-4 flex gap-2">
+                          <button 
+                            onClick={() => setSelectedAppointment(a)}
+                            className="text-xs bg-accent/20 hover:bg-accent/30 text-accent px-3 py-1.5 rounded-lg transition-all"
+                          >
+                            View
+                          </button>
+                          <button 
+                            onClick={() => handleUpdateStatus(a.id, a.status)}
+                            className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-all"
+                          >
+                            Mark {a.status === 'pending' ? 'Done' : 'Pending'}
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteAppointment(a.id)}
+                            className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1"
+                            title="Delete Appointment"
+                          >
+                            <Trash2 size={13} /> Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {appointments.length === 0 && (
+                      <tr><td colSpan={7} className="py-8 text-center text-gray-500">No appointments found.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </motion.div>
           )}
 
