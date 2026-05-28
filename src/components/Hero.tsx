@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring, useMotionValue } from "framer-motion";
 import { useRef, useState } from "react";
 import { useStudio } from "@/context/StudioContext";
 import { Sparkles, Terminal, Activity, Shield, Cpu, ChevronRight } from "lucide-react";
@@ -26,29 +26,50 @@ export default function Hero() {
   const heroOpacity = useTransform(yProgressSpring, [0, 0.6], [1, 0]);
   const heroY = useTransform(yProgressSpring, [0, 0.6], ["0px", "-60px"]);
 
-  // Mouse Move 3D Hover Tilt States
+  // Mouse Parallax Motion Values for Background Video
+  const bgMouseX = useMotionValue(0);
+  const bgMouseY = useMotionValue(0);
+  const bgSpringX = useSpring(bgMouseX, { stiffness: 45, damping: 20 });
+  const bgSpringY = useSpring(bgMouseY, { stiffness: 45, damping: 20 });
+
+  // Mouse Move 3D Hover Tilt States for Mockup
   const [tiltX, setTiltX] = useState(0);
   const [tiltY, setTiltY] = useState(0);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!mockupRef.current) return;
-    const rect = mockupRef.current.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    const mouseX = e.clientX - rect.left - width / 2;
-    const mouseY = e.clientY - rect.top - height / 2;
+  const handleContainerMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    // 1. Update background parallax offsets based on screen percentage (Opposing depth)
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    const mouseXRatio = (e.clientX - windowWidth / 2) / (windowWidth / 2); // -1 to 1
+    const mouseYRatio = (e.clientY - windowHeight / 2) / (windowHeight / 2); // -1 to 1
 
-    // Max 10 degrees tilt
-    const tX = -(mouseY / height) * 10;
-    const tY = (mouseX / width) * 10;
+    bgMouseX.set(-mouseXRatio * 20); // Opposing shift, max 20px
+    bgMouseY.set(-mouseYRatio * 20); // Opposing shift, max 20px
 
-    setTiltX(tX);
-    setTiltY(tY);
+    // 2. Also tilt mockup dynamically if hovering relatively close to it
+    if (mockupRef.current) {
+      const rect = mockupRef.current.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+      const mX = e.clientX - rect.left - width / 2;
+      const mY = e.clientY - rect.top - height / 2;
+
+      const dist = Math.hypot(mX, mY);
+      if (dist < width * 0.9) {
+        setTiltX(-(mY / height) * 10);
+        setTiltY((mX / width) * 10);
+      } else {
+        setTiltX(0);
+        setTiltY(0);
+      }
+    }
   };
 
-  const handleMouseLeave = () => {
+  const handleContainerMouseLeave = () => {
     setTiltX(0);
     setTiltY(0);
+    bgMouseX.set(0);
+    bgMouseY.set(0);
   };
 
   const wordSplit = settings?.name ? settings.name.split(' ') : ['Kryto', 'Studio'];
@@ -58,20 +79,39 @@ export default function Hero() {
   return (
     <section 
       ref={containerRef} 
+      onMouseMove={handleContainerMouseMove}
+      onMouseLeave={handleContainerMouseLeave}
       className="relative min-h-[120vh] w-full flex flex-col items-center justify-start overflow-hidden bg-[#030303] pt-32 sm:pt-40 px-4 select-none"
     >
-      {/* 1. HackerRank Neon Grid Vector Space */}
+      {/* 1. Full Screen Premium Ambient Video Background & Cyber Grid Vector Space */}
       <motion.div 
-        style={{ scale: gridScale }}
-        className="absolute inset-0 w-full h-full z-0 pointer-events-none"
+        style={{ 
+          scale: gridScale,
+          x: bgSpringX,
+          y: useTransform(yProgressSpring, [0, 1], ["0%", "15%"]) // Scroll Parallax
+        }}
+        className="absolute inset-0 w-full h-full z-0 pointer-events-none overflow-hidden"
       >
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none opacity-40 filter brightness-[0.7] contrast-[1.1]"
+        >
+          <source src="/asset/ok_good_starting_me_build_hoga.mp4" type="video/mp4" />
+        </video>
+
         {/* Sleek cyber grid lines in CSS */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(14,165,233,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(14,165,233,0.05)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_40%,#000_70%,transparent_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_40%,#000_70%,transparent_100%)] z-10" />
         
         {/* Soft back-glowing radial gradients */}
-        <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-br from-sky-500/10 via-purple-500/5 to-transparent rounded-full blur-[130px]" />
-        <div className="absolute top-[40%] left-[20%] w-[350px] h-[350px] bg-sky-500/5 rounded-full blur-[90px]" />
-        <div className="absolute top-[35%] right-[20%] w-[350px] h-[350px] bg-purple-500/5 rounded-full blur-[90px]" />
+        <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-br from-sky-500/10 via-purple-500/5 to-transparent rounded-full blur-[130px] z-10 pointer-events-none" />
+        <div className="absolute top-[40%] left-[20%] w-[350px] h-[350px] bg-sky-500/5 rounded-full blur-[90px] z-10 pointer-events-none" />
+        <div className="absolute top-[35%] right-[20%] w-[350px] h-[350px] bg-purple-500/5 rounded-full blur-[90px] z-10 pointer-events-none" />
+        
+        {/* Dark mask overlay to make text easily readable with extreme visual premium look */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#030303]/30 via-[#030303]/85 to-[#030303] z-10" />
       </motion.div>
 
       {/* 2. Top Glowing Badge & Interactive Headers */}
@@ -139,8 +179,6 @@ export default function Hero() {
         className="w-full max-w-5xl z-10 relative mt-4 md:mt-8 px-2 md:px-0"
       >
         <div 
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
           className="w-full rounded-[2.5rem] p-1.5 sm:p-2.5 bg-gradient-to-b from-sky-500/20 via-white/5 to-white/[0.02] border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] relative group cursor-default overflow-hidden"
         >
           {/* Inner ambient card glow */}
