@@ -38,6 +38,14 @@ export default function AdminDashboard() {
   const [newPermissionEmail, setNewPermissionEmail] = useState("");
   const [savingPermission, setSavingPermission] = useState(false);
 
+  // Featured Clients States
+  const [featuredClients, setFeaturedClients] = useState<any[]>([]);
+  const [clientName, setClientName] = useState("");
+  const [clientDesc, setClientDesc] = useState("");
+  const [clientPhotoFile, setClientPhotoFile] = useState<File | null>(null);
+  const [clientPhotoPreview, setClientPhotoPreview] = useState<string | null>(null);
+  const [savingClient, setSavingClient] = useState(false);
+
   useEffect(() => {
     if (isAdmin) {
       fetchData();
@@ -53,12 +61,13 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoadingData(true);
     try {
-      const [apptsRes, inqsRes, portRes, permissionsRes, reviewsRes] = await Promise.all([
+      const [apptsRes, inqsRes, portRes, permissionsRes, reviewsRes, featuredRes] = await Promise.all([
         supabase.from("appointments").select("*").order("date", { ascending: false }),
         supabase.from("contact_inquiries").select("*").order("created_at", { ascending: false }),
         supabase.from("portfolio").select("*").order("created_at", { ascending: false }),
         supabase.from("reviews_permissions").select("*").order("created_at", { ascending: false }),
         supabase.from("reviews").select("*").order("created_at", { ascending: false }),
+        supabase.from("featured_clients").select("*").order("created_at", { ascending: false }),
       ]);
 
       if (apptsRes.data) setAppointments(apptsRes.data);
@@ -66,6 +75,7 @@ export default function AdminDashboard() {
       if (portRes.data) setPortfolios(portRes.data);
       if (permissionsRes.data) setReviewPermissions(permissionsRes.data);
       if (reviewsRes.data) setAllReviews(reviewsRes.data);
+      if (featuredRes.data) setFeaturedClients(featuredRes.data);
     } catch (err) {
       console.error("Failed to load dashboard data:", err);
     } finally {
@@ -127,6 +137,71 @@ export default function AdminDashboard() {
     const { error } = await supabase.from("appointments").update({ status: newStatus }).eq("id", id);
     if (!error) {
       setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
+    }
+  };
+
+  const handleFeaturedClientPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setClientPhotoFile(file);
+      setClientPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleAddFeaturedClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientName || !clientDesc || !clientPhotoFile) {
+      alert("Please fill all fields and upload a photo.");
+      return;
+    }
+
+    setSavingClient(true);
+    try {
+      const fileExt = clientPhotoFile.name.split('.').pop();
+      const filePath = `featured-clients/${Date.now()}-${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('studio-assets')
+        .upload(filePath, clientPhotoFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('studio-assets').getPublicUrl(filePath);
+      const photoUrl = urlData.publicUrl;
+
+      const { error } = await supabase
+        .from("featured_clients")
+        .insert([{ name: clientName, description: clientDesc, photo_url: photoUrl }]);
+
+      if (error) throw error;
+
+      setClientName("");
+      setClientDesc("");
+      setClientPhotoFile(null);
+      setClientPhotoPreview(null);
+
+      const { data } = await supabase.from("featured_clients").select("*").order("created_at", { ascending: false });
+      if (data) setFeaturedClients(data);
+
+      alert("Featured client added successfully!");
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to add featured client: " + (err.message || err));
+    } finally {
+      setSavingClient(false);
+    }
+  };
+
+  const handleDeleteFeaturedClient = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this featured client?")) return;
+    try {
+      const { error } = await supabase.from("featured_clients").delete().eq("id", id);
+      if (error) throw error;
+      setFeaturedClients(prev => prev.filter(c => c.id !== id));
+      alert("Featured client deleted!");
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting featured client.");
     }
   };
 
@@ -716,6 +791,115 @@ export default function AdminDashboard() {
                   {allReviews.length === 0 && (
                     <p className="text-gray-500 text-xs py-8 text-center">No customer reviews published yet.</p>
                   )}
+                </div>
+              </div>
+
+              {/* Full Width Row for Meet Our Clients Manager */}
+              <div className="col-span-1 lg:col-span-2 border-t border-white/5 pt-10 mt-10 space-y-6">
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                    <Users size={20} className="text-accent" />
+                    Meet Our Clients Manager (Homepage Highlight)
+                  </h3>
+                  <p className="text-gray-400 text-sm">
+                    Manage up to 3 featured client partners shown in a glowing blue glassmorphic box on the homepage before reviews.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Add Featured Client Form */}
+                  <div className="md:col-span-1 bg-black/30 p-5 rounded-2xl border border-white/5 space-y-4">
+                    <h4 className="text-sm font-semibold text-white">Add New Client Highlight</h4>
+                    
+                    <form onSubmit={handleAddFeaturedClient} className="space-y-4">
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider block mb-1">Client Name</label>
+                        <input
+                          required
+                          type="text"
+                          value={clientName}
+                          onChange={(e) => setClientName(e.target.value)}
+                          placeholder="e.g. John Doe, CEO of Alpha"
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider block mb-1">Description (Unique Font Style)</label>
+                        <textarea
+                          required
+                          rows={3}
+                          value={clientDesc}
+                          onChange={(e) => setClientDesc(e.target.value)}
+                          placeholder="e.g. Kryto Studio turned our wild cyberpunk visions into a premium reality."
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-xs leading-relaxed"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider block mb-1">Client Photo</label>
+                        <div className="flex items-center gap-3">
+                          {clientPhotoPreview && (
+                            <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 shrink-0">
+                              <img src={clientPhotoPreview} alt="Preview" className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          <input
+                            required
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFeaturedClientPhotoChange}
+                            className="text-[11px] text-gray-400 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 cursor-pointer"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={savingClient}
+                        className="w-full bg-accent hover:bg-accent/90 text-white font-semibold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        {savingClient ? <Loader2 className="animate-spin" size={12} /> : <Plus size={12} />}
+                        Add Featured Client
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Listed Featured Clients */}
+                  <div className="md:col-span-2 bg-black/20 border border-white/5 rounded-2xl p-5 flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-400 mb-4 block">Active Highlights (Max 3 Shown)</h4>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {featuredClients.map((client) => (
+                          <div key={client.id} className="bg-sky-500/[0.02] border border-sky-500/10 p-4 rounded-xl flex items-start gap-3 relative group">
+                            <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-sky-500/20 bg-zinc-900">
+                              <img src={client.photo_url} alt={client.name} className="w-full h-full object-cover" />
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <h5 className="text-white font-bold text-xs truncate">{client.name}</h5>
+                              <p className="font-serif italic text-sky-200/90 text-[10px] leading-relaxed mt-1 line-clamp-3">"{client.description}"</p>
+                            </div>
+
+                            <button
+                              onClick={() => handleDeleteFeaturedClient(client.id)}
+                              className="absolute top-2 right-2 text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                              title="Delete Highlight"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        ))}
+
+                        {featuredClients.length === 0 && (
+                          <div className="col-span-2 text-center py-10 text-gray-500 text-xs">
+                            No featured client highlights added yet. Use the form to showcase client partners!
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>
