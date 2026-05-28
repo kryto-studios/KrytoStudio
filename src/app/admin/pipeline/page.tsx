@@ -59,6 +59,7 @@ export default function PipelineMatrixPage() {
   // Primary Data States
   const [leads, setLeads] = useState<ClientLead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -465,8 +466,35 @@ export default function PipelineMatrixPage() {
       const { error } = await supabase.from("leads_clients").delete().eq("id", id);
       if (error) throw error;
       if (selectedLeadId === id) setSelectedLeadId(null);
+      setSelectedLeadIds(prev => prev.filter(item => item !== id));
     } catch (err) {
       console.error("Failed to delete lead:", err);
+    }
+  };
+
+  // Bulk delete selected leads
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to permanently delete ${selectedLeadIds.length} selected lead(s)? This cannot be undone.`)) return;
+    try {
+      const { error } = await supabase
+        .from("leads_clients")
+        .delete()
+        .in("id", selectedLeadIds);
+
+      if (error) throw error;
+
+      // Update state locally
+      setLeads(prev => prev.filter(lead => !selectedLeadIds.includes(lead.id)));
+      
+      // If active selection drawer was deleted, close it
+      if (selectedLeadId && selectedLeadIds.includes(selectedLeadId)) {
+        setSelectedLeadId(null);
+      }
+
+      setSelectedLeadIds([]);
+    } catch (err) {
+      console.error("Failed to bulk delete leads:", err);
+      alert("Error performing bulk deletion.");
     }
   };
 
@@ -488,6 +516,52 @@ export default function PipelineMatrixPage() {
   // Define TanStack Table Columns
   const columns = useMemo<ColumnDef<ClientLead>[]>(
     () => [
+      {
+        id: "select",
+        header: () => (
+          <div className="flex items-center justify-center p-1">
+            <input
+              type="checkbox"
+              checked={
+                filteredLeadsData.length > 0 && 
+                filteredLeadsData.every(lead => selectedLeadIds.includes(lead.id))
+              }
+              onChange={(e) => {
+                if (e.target.checked) {
+                  const visibleIds = filteredLeadsData.map(lead => lead.id);
+                  setSelectedLeadIds(prev => {
+                    const union = new Set([...prev, ...visibleIds]);
+                    return Array.from(union);
+                  });
+                } else {
+                  const visibleIds = filteredLeadsData.map(lead => lead.id);
+                  setSelectedLeadIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                }
+              }}
+              className="w-4 h-4 accent-accent rounded border-white/10 bg-black/40 cursor-pointer focus:ring-0 focus:ring-offset-0"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="flex items-center justify-center p-1">
+            <input
+              type="checkbox"
+              checked={selectedLeadIds.includes(row.original.id)}
+              onChange={(e) => {
+                const leadId = row.original.id;
+                if (e.target.checked) {
+                  setSelectedLeadIds(prev => [...prev, leadId]);
+                } else {
+                  setSelectedLeadIds(prev => prev.filter(id => id !== leadId));
+                }
+              }}
+              className="w-4 h-4 accent-accent rounded border-white/10 bg-black/40 cursor-pointer focus:ring-0 focus:ring-offset-0"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )
+      },
       {
         accessorKey: "client_name",
         header: "Client Name",
@@ -763,7 +837,7 @@ export default function PipelineMatrixPage() {
         )
       }
     ],
-    [editingCell, editValue]
+    [editingCell, editValue, selectedLeadIds, filteredLeadsData]
   );
 
   // TanStack table initialization
@@ -813,7 +887,15 @@ export default function PipelineMatrixPage() {
             <p className="text-zinc-400 text-sm mt-1">High-density glassmorphic spreadsheet database for agency growth.</p>
           </div>
           
-          <div className="flex gap-4 w-full md:w-auto">
+          <div className="flex gap-4 w-full md:w-auto items-center">
+            {selectedLeadIds.length > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold py-3 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(244,63,94,0.1)] hover:shadow-[0_0_30px_rgba(244,63,94,0.2)] flex items-center gap-2 text-sm cursor-pointer animate-pulse"
+              >
+                <Trash2 size={18} /> Bulk Delete ({selectedLeadIds.length})
+              </button>
+            )}
             <button
               onClick={() => setIsAddModalOpen(true)}
               className="bg-accent hover:bg-accent/80 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(14,165,233,0.3)] hover:shadow-[0_0_30px_rgba(14,165,233,0.5)] flex items-center gap-2 text-sm cursor-pointer"
