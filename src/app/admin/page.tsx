@@ -29,6 +29,7 @@ export default function AdminDashboard() {
   // Portfolio Form States
   const [newPortfolio, setNewPortfolio] = useState({ title: "", category: "Web Development", link: "" });
   const [savingPortfolio, setSavingPortfolio] = useState(false);
+  const [portfolioFiles, setPortfolioFiles] = useState<FileList | null>(null);
 
   useEffect(() => {
     if (isAdmin) {
@@ -116,31 +117,71 @@ export default function AdminDashboard() {
     e.preventDefault();
     setSavingPortfolio(true);
     
-    // Auto-generate youtube thumbnail if youtube link
-    let thumbnailUrl = null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = newPortfolio.link.match(regExp);
-    if (match && match[2].length === 11) {
-      thumbnailUrl = `https://img.youtube.com/vi/${match[2]}/maxresdefault.jpg`;
-    }
+    try {
+      let image_urls: string[] = [];
+      let thumbnailUrl = null;
 
-    const { data, error } = await supabase.from("portfolio").insert([
-      {
-        title: newPortfolio.title,
-        category: newPortfolio.category,
-        link: newPortfolio.link,
-        thumbnail_url: thumbnailUrl
+      // Handle multiple image uploads if provided
+      if (portfolioFiles && portfolioFiles.length > 0) {
+        for (let i = 0; i < portfolioFiles.length; i++) {
+          const file = portfolioFiles[i];
+          const fileExt = file.name.split('.').pop();
+          const filePath = `portfolio-${Math.random()}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('studio-assets')
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = supabase.storage.from('studio-assets').getPublicUrl(filePath);
+          if (urlData?.publicUrl) {
+            image_urls.push(urlData.publicUrl);
+          }
+        }
+
+        // Auto-use first uploaded image as thumbnail
+        if (image_urls.length > 0) {
+          thumbnailUrl = image_urls[0];
+        }
       }
-    ]).select();
 
-    if (!error && data) {
-      setPortfolios([data[0], ...portfolios]);
-      setNewPortfolio({ title: "", category: "Web App", link: "" });
-    } else {
-      console.error(error);
-      alert("Error saving portfolio.");
+      // Auto-generate youtube thumbnail if youtube link
+      if (!thumbnailUrl && newPortfolio.link) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = newPortfolio.link.match(regExp);
+        if (match && match[2].length === 11) {
+          thumbnailUrl = `https://img.youtube.com/vi/${match[2]}/maxresdefault.jpg`;
+        }
+      }
+
+      const { data, error } = await supabase.from("portfolio").insert([
+        {
+          title: newPortfolio.title,
+          category: newPortfolio.category,
+          link: newPortfolio.link || "#",
+          thumbnail_url: thumbnailUrl,
+          image_urls: image_urls
+        }
+      ]).select();
+
+      if (error) throw error;
+
+      if (data && data[0]) {
+        setPortfolios([data[0], ...portfolios]);
+        setNewPortfolio({ title: "", category: "Web Development", link: "" });
+        setPortfolioFiles(null);
+        // Reset file input
+        const fileInput = document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
+        if (fileInput) fileInput.value = "";
+        alert("Portfolio project saved successfully!");
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Error saving portfolio: " + (err.message || err));
+    } finally {
+      setSavingPortfolio(false);
     }
-    setSavingPortfolio(false);
   };
 
   const handleDeletePortfolio = async (id: string) => {
@@ -283,12 +324,37 @@ export default function AdminDashboard() {
                   <label className="text-sm font-medium text-gray-300 ml-1">Category</label>
                   <select required value={newPortfolio.category} onChange={e => setNewPortfolio({...newPortfolio, category: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 mt-1 appearance-none">
                     <option value="Web Development">Web Development</option>
+                    <option value="App Development">App Development</option>
+                    <option value="Software Development">Software Development</option>
                     <option value="Video Editing">Video Editing</option>
+                    <option value="Graphics Design">Graphics Design</option>
                   </select>
                 </div>
+                {newPortfolio.category === "Software Development" && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-300 ml-1 block">Project Images / Screenshots (Multiple)</label>
+                    <input 
+                      type="file" 
+                      multiple 
+                      accept="image/*" 
+                      onChange={(e) => setPortfolioFiles(e.target.files)}
+                      className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-accent/50 transition-all text-xs" 
+                    />
+                    {portfolioFiles && (
+                      <p className="text-accent text-xs font-semibold">{portfolioFiles.length} file(s) selected</p>
+                    )}
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-medium text-gray-300 ml-1">URL (YouTube / Website / Drive)</label>
-                  <input required type="url" value={newPortfolio.link} onChange={e => setNewPortfolio({...newPortfolio, link: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 mt-1" placeholder="https://..." />
+                  <input 
+                    required={newPortfolio.category !== "Software Development"} 
+                    type="url" 
+                    value={newPortfolio.link} 
+                    onChange={e => setNewPortfolio({...newPortfolio, link: e.target.value})} 
+                    className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 mt-1" 
+                    placeholder={newPortfolio.category === "Software Development" ? "https://... (Optional)" : "https://..."} 
+                  />
                 </div>
                 <button type="submit" disabled={savingPortfolio} className="bg-accent hover:bg-accent/90 text-white font-medium py-3 px-6 rounded-xl transition-all flex items-center gap-2 mt-4">
                   {savingPortfolio ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
