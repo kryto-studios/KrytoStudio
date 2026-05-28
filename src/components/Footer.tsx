@@ -30,16 +30,27 @@ export default function Footer() {
           
           <div>
             <h3 className="text-lg font-semibold text-white mb-6">Contact Us</h3>
-            <ul className="space-y-4">
+            <ul className="space-y-4 text-sm">
+              <li className="text-gray-400">
+                <span className="text-accent font-semibold block text-[10px] uppercase tracking-wider mb-0.5">Co-Founders</span>
+                Dewansh Chatterjee & Aryan Gupta
+              </li>
               <li>
-                <a href="mailto:aryan90pm@gmail.com" className="text-gray-400 hover:text-accent transition-colors cursor-pointer">
-                  aryan90pm@gmail.com
+                <span className="text-accent font-semibold block text-[10px] uppercase tracking-wider mb-0.5">Email</span>
+                <a href="mailto:kryto.studioo@zohomail.in" className="text-gray-300 hover:text-accent transition-colors cursor-pointer break-all">
+                  kryto.studioo@zohomail.in
                 </a>
               </li>
               <li>
-                <a href="tel:+919294625866" className="text-gray-400 hover:text-accent transition-colors cursor-pointer">
-                  +91 9294625866
-                </a>
+                <span className="text-accent font-semibold block text-[10px] uppercase tracking-wider mb-0.5">Phone</span>
+                <div className="flex flex-col gap-1 text-gray-300">
+                  <a href="tel:+919294625866" className="hover:text-accent transition-colors cursor-pointer">
+                    +91 9294625866
+                  </a>
+                  <a href="tel:+919340411838" className="hover:text-accent transition-colors cursor-pointer">
+                    +91 9340411838
+                  </a>
+                </div>
               </li>
             </ul>
           </div>

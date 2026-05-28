@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       }),
       transporter.sendMail({
         from: fromAddress,
-        to: ['gamermirchi08@gmail.com', 'krytostudio@gmail.com'],
+        to: ['gamermirchi08@gmail.com', 'kryto.studioo@zohomail.in'],
         subject: adminSubject,
         html: adminHtml,
       })
