@@ -1,13 +1,14 @@
 "use client";
 
 import { motion, useScroll, useTransform, useSpring, useMotionValue } from "framer-motion";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useStudio } from "@/context/StudioContext";
 import { Sparkles, Terminal, Activity, Shield, Cpu, ChevronRight } from "lucide-react";
 
 export default function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mockupRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { settings } = useStudio();
 
   // Scroll Parallax Hooks
@@ -26,7 +27,7 @@ export default function Hero() {
   const heroOpacity = useTransform(yProgressSpring, [0, 0.6], [1, 0]);
   const heroY = useTransform(yProgressSpring, [0, 0.6], ["0px", "-60px"]);
 
-  // Mouse Parallax Motion Values for Background Video
+  // Mouse Parallax Motion Values for Background Video & Particles
   const bgMouseX = useMotionValue(0);
   const bgMouseY = useMotionValue(0);
   const bgSpringX = useSpring(bgMouseX, { stiffness: 45, damping: 20 });
@@ -72,6 +73,167 @@ export default function Hero() {
     bgMouseY.set(0);
   };
 
+  // Canvas interactive particle network setup
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    let particles: Particle[] = [];
+    const mouse = { x: null as number | null, y: null as number | null, radius: 180 };
+
+    class Particle {
+      x: number;
+      y: number;
+      directionX: number;
+      directionY: number;
+      size: number;
+      color: string;
+
+      constructor(x: number, y: number, directionX: number, directionY: number, size: number, color: string) {
+        this.x = x;
+        this.y = y;
+        this.directionX = directionX;
+        this.directionY = directionY;
+        this.size = size;
+        this.color = color;
+      }
+
+      draw() {
+        if (!ctx) return;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+      }
+
+      update() {
+        if (!canvas) return;
+        if (this.x > canvas.width || this.x < 0) {
+          this.directionX = -this.directionX;
+        }
+        if (this.y > canvas.height || this.y < 0) {
+          this.directionY = -this.directionY;
+        }
+
+        // Mouse collision detection
+        if (mouse.x !== null && mouse.y !== null) {
+          let dx = mouse.x - this.x;
+          let dy = mouse.y - this.y;
+          let distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < mouse.radius + this.size) {
+            const forceDirectionX = dx / distance;
+            const forceDirectionY = dy / distance;
+            const force = (mouse.radius - distance) / mouse.radius;
+            this.x -= forceDirectionX * force * 4;
+            this.y -= forceDirectionY * force * 4;
+          }
+        }
+
+        this.x += this.directionX;
+        this.y += this.directionY;
+        this.draw();
+      }
+    }
+
+    function init() {
+      if (!canvas) return;
+      particles = [];
+      let numberOfParticles = (canvas.height * canvas.width) / 12000;
+      for (let i = 0; i < numberOfParticles; i++) {
+        let size = (Math.random() * 1.5) + 0.8;
+        let x = (Math.random() * ((canvas.width - size * 2) - (size * 2)) + size * 2);
+        let y = (Math.random() * ((canvas.height - size * 2) - (size * 2)) + size * 2);
+        let directionX = (Math.random() * 0.3) - 0.15;
+        let directionY = (Math.random() * 0.3) - 0.15;
+        // Alternate colors matching sky-blue and purple
+        let color = i % 2 === 0 ? 'rgba(56, 189, 248, 0.35)' : 'rgba(192, 132, 252, 0.35)';
+        particles.push(new Particle(x, y, directionX, directionY, size, color));
+      }
+    }
+
+    const resizeCanvas = () => {
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      init(); 
+    };
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const connect = () => {
+      if (!canvas || !ctx) return;
+      let opacityValue = 1;
+      for (let a = 0; a < particles.length; a++) {
+        for (let b = a; b < particles.length; b++) {
+          let distance = ((particles[a].x - particles[b].x) * (particles[a].x - particles[b].x))
+              + ((particles[a].y - particles[b].y) * (particles[a].y - particles[b].y));
+          
+          if (distance < (canvas.width / 7) * (canvas.height / 7)) {
+            opacityValue = 1 - (distance / 25000);
+            
+            let dx_mouse_a = 0;
+            let dy_mouse_a = 0;
+            if (mouse.x !== null && mouse.y !== null) {
+              dx_mouse_a = particles[a].x - mouse.x;
+              dy_mouse_a = particles[a].y - mouse.y;
+            }
+            let distance_mouse_a = Math.sqrt(dx_mouse_a*dx_mouse_a + dy_mouse_a*dy_mouse_a);
+
+            if (mouse.x && distance_mouse_a < mouse.radius) {
+                 ctx.strokeStyle = `rgba(14, 165, 233, ${opacityValue * 0.35})`; // Glowing sky blue
+            } else {
+                 ctx.strokeStyle = `rgba(168, 85, 247, ${opacityValue * 0.18})`; // Muted purple lines
+            }
+            
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(particles[a].x, particles[a].y);
+            ctx.lineTo(particles[b].x, particles[b].y);
+            ctx.stroke();
+          }
+        }
+      }
+    };
+
+    const animate = () => {
+      if (!ctx || !canvas) return;
+      animationFrameId = requestAnimationFrame(animate);
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // Keep transparent!
+
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].update();
+      }
+      connect();
+    };
+    
+    const handleMouseMove = (event: MouseEvent) => {
+      mouse.x = event.clientX;
+      mouse.y = event.clientY;
+    };
+    
+    const handleMouseOut = () => {
+      mouse.x = null;
+      mouse.y = null;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseout', handleMouseOut);
+
+    init();
+    animate();
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseout', handleMouseOut);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
   const wordSplit = settings?.name ? settings.name.split(' ') : ['Kryto', 'Studio'];
   const firstWord = wordSplit[0] || 'Kryto';
   const restWords = wordSplit.slice(1).join(' ') || 'Studio';
@@ -83,7 +245,7 @@ export default function Hero() {
       onMouseLeave={handleContainerMouseLeave}
       className="relative min-h-[120vh] w-full flex flex-col items-center justify-start overflow-hidden bg-[#030303] pt-32 sm:pt-40 px-4 select-none"
     >
-      {/* 1. Full Screen Premium Ambient Video Background & Cyber Grid Vector Space */}
+      {/* 1. Full Screen Premium Ambient Video Background & Interactive Canvas Particles */}
       <motion.div 
         style={{ 
           scale: gridScale,
@@ -97,21 +259,24 @@ export default function Hero() {
           loop
           muted
           playsInline
-          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none opacity-40 filter brightness-[0.7] contrast-[1.1]"
+          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none opacity-30 filter brightness-[0.6] contrast-[1.1]"
         >
           <source src="/asset/ok_good_starting_me_build_hoga.mp4" type="video/mp4" />
         </video>
 
+        {/* Dynamic Aether Flow Interactive canvas layer */}
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full z-10 opacity-70 pointer-events-none mix-blend-screen" />
+
         {/* Sleek cyber grid lines in CSS */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_40%,#000_70%,transparent_100%)] z-10" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(14,165,233,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(14,165,233,0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_40%,#000_70%,transparent_100%)] z-20" />
         
         {/* Soft back-glowing radial gradients */}
-        <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-br from-sky-500/10 via-purple-500/5 to-transparent rounded-full blur-[130px] z-10 pointer-events-none" />
-        <div className="absolute top-[40%] left-[20%] w-[350px] h-[350px] bg-sky-500/5 rounded-full blur-[90px] z-10 pointer-events-none" />
-        <div className="absolute top-[35%] right-[20%] w-[350px] h-[350px] bg-purple-500/5 rounded-full blur-[90px] z-10 pointer-events-none" />
+        <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-br from-sky-500/10 via-purple-500/5 to-transparent rounded-full blur-[130px] z-20 pointer-events-none" />
+        <div className="absolute top-[40%] left-[20%] w-[350px] h-[350px] bg-sky-500/5 rounded-full blur-[90px] z-20 pointer-events-none" />
+        <div className="absolute top-[35%] right-[20%] w-[350px] h-[350px] bg-purple-500/5 rounded-full blur-[90px] z-20 pointer-events-none" />
         
         {/* Dark mask overlay to make text easily readable with extreme visual premium look */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#030303]/30 via-[#030303]/85 to-[#030303] z-10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#030303]/30 via-[#030303]/85 to-[#030303] z-20" />
       </motion.div>
 
       {/* 2. Top Glowing Badge & Interactive Headers */}
