@@ -913,6 +913,7 @@ export default function AdminDashboard() {
                           onChange={(e) => setClientDesc(e.target.value)}
                           placeholder="e.g. Kryto Studio turned our wild cyberpunk visions into a premium reality."
                           className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-xs leading-relaxed"
+                          data-lenis-prevent
                         />
                       </div>
 

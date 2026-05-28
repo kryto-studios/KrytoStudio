@@ -49,9 +49,10 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
   const [activeGallery, setActiveGallery] = useState<any | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isGridView, setIsGridView] = useState(false);
+  const [isFullScreenMode, setIsFullScreenMode] = useState(false);
 
   useEffect(() => {
-    if (activeGallery) {
+    if (activeGallery || isFullScreenMode) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -59,7 +60,36 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [activeGallery]);
+  }, [activeGallery, isFullScreenMode]);
+
+  const nextImage = () => {
+    if (!activeGallery || !activeGallery.image_urls) return;
+    setActiveImageIndex((prev) => (prev + 1) % activeGallery.image_urls.length);
+  };
+
+  const prevImage = () => {
+    if (!activeGallery || !activeGallery.image_urls) return;
+    setActiveImageIndex((prev) => (prev - 1 + activeGallery.image_urls.length) % activeGallery.image_urls.length);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!activeGallery) return;
+      if (e.key === "ArrowRight") {
+        nextImage();
+      } else if (e.key === "ArrowLeft") {
+        prevImage();
+      } else if (e.key === "Escape") {
+        if (isFullScreenMode) {
+          setIsFullScreenMode(false);
+        } else {
+          setActiveGallery(null);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeGallery, activeImageIndex, isFullScreenMode]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -75,16 +105,7 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
     setActiveGallery(item);
     setActiveImageIndex(0);
     setIsGridView(false);
-  };
-
-  const nextImage = () => {
-    if (!activeGallery || !activeGallery.image_urls) return;
-    setActiveImageIndex((prev) => (prev + 1) % activeGallery.image_urls.length);
-  };
-
-  const prevImage = () => {
-    if (!activeGallery || !activeGallery.image_urls) return;
-    setActiveImageIndex((prev) => (prev - 1 + activeGallery.image_urls.length) % activeGallery.image_urls.length);
+    setIsFullScreenMode(false);
   };
 
   return (
@@ -267,7 +288,7 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
 
               {isGridView ? (
                 /* Dynamic Grid View display showing all screenshots at once */
-                <div className="flex-1 overflow-y-auto max-h-[65vh] p-2 grid grid-cols-2 sm:grid-cols-3 gap-4 scrollbar-thin scrollbar-thumb-zinc-800 pr-1 select-none">
+                <div className="flex-1 overflow-y-auto max-h-[65vh] p-2 grid grid-cols-2 sm:grid-cols-3 gap-4 scrollbar-thin scrollbar-thumb-zinc-800 pr-1 select-none" data-lenis-prevent>
                   {activeGallery.image_urls.map((url: string, index: number) => (
                     <div 
                       key={url}
@@ -290,28 +311,47 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
                 /* Main image viewer with slider arrows */
                 <>
                   <div className="relative flex-1 min-h-[300px] md:min-h-[450px] bg-black/40 border border-white/5 rounded-2xl overflow-hidden flex items-center justify-center group/view select-none">
-                    <div className="relative w-full h-full aspect-[16/9] max-h-[55vh]">
+                    <motion.div 
+                      drag="x"
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.2}
+                      onDragEnd={(e, info) => {
+                        const swipeThreshold = 50;
+                        if (info.offset.x < -swipeThreshold) {
+                          nextImage();
+                        } else if (info.offset.x > swipeThreshold) {
+                          prevImage();
+                        }
+                      }}
+                      onClick={() => setIsFullScreenMode(true)}
+                      className="relative w-full h-full aspect-[16/9] max-h-[55vh] cursor-zoom-in active:cursor-grabbing flex items-center justify-center"
+                    >
                       <Image 
                         src={activeGallery.image_urls[activeImageIndex]} 
                         alt={`${activeGallery.title} screenshot ${activeImageIndex + 1}`} 
                         fill
-                        className="object-contain"
+                        className="object-contain pointer-events-none"
                         priority
                       />
-                    </div>
+                      
+                      {/* Hint for dragging/clicking */}
+                      <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm border border-white/10 px-3 py-1.5 rounded-full text-[10px] text-accent font-semibold opacity-0 group-hover/view:opacity-100 transition-opacity flex items-center gap-1.5 pointer-events-none">
+                        <Eye size={10} /> Click to Full Screen / Drag to Slide
+                      </div>
+                    </motion.div>
 
                     {/* Arrow navigation */}
                     {activeGallery.image_urls.length > 1 && (
                       <>
                         <button 
                           onClick={prevImage}
-                          className="absolute left-4 p-3 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all transform -translate-y-1/2 top-1/2 opacity-80 hover:opacity-100 cursor-pointer"
+                          className="absolute left-4 p-3 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all transform -translate-y-1/2 top-1/2 opacity-80 hover:opacity-100 cursor-pointer z-30"
                         >
                           <ChevronLeft size={24} />
                         </button>
                         <button 
                           onClick={nextImage}
-                          className="absolute right-4 p-3 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all transform -translate-y-1/2 top-1/2 opacity-80 hover:opacity-100 cursor-pointer"
+                          className="absolute right-4 p-3 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all transform -translate-y-1/2 top-1/2 opacity-80 hover:opacity-100 cursor-pointer z-30"
                         >
                           <ChevronRight size={24} />
                         </button>
@@ -319,14 +359,14 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
                     )}
 
                     {/* Counter index pill */}
-                    <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/60 border border-white/10 rounded-full text-xs font-medium text-gray-400">
+                    <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/60 border border-white/10 rounded-full text-xs font-medium text-gray-400 z-30">
                       Image {activeImageIndex + 1} of {activeGallery.image_urls.length}
                     </div>
                   </div>
 
                   {/* Thumbnail Strip */}
                   {activeGallery.image_urls.length > 1 && (
-                    <div className="flex gap-3 mt-6 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-zinc-800 justify-start md:justify-center">
+                    <div className="flex gap-3 mt-6 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-zinc-800 justify-start md:justify-center" data-lenis-prevent>
                       {activeGallery.image_urls.map((url: string, index: number) => (
                         <button
                           key={url}
@@ -337,7 +377,7 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
                             src={url} 
                             alt="thumbnail" 
                             fill
-                            className="object-cover"
+                            className="object-cover pointer-events-none"
                           />
                         </button>
                       ))}
@@ -346,6 +386,88 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
                 </>
               )}
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Full Screen Zoom Lightbox */}
+      <AnimatePresence>
+        {isFullScreenMode && activeGallery && activeGallery.image_urls && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/98 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 select-none"
+            data-lenis-prevent
+          >
+            {/* Top Toolbar */}
+            <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-[110]">
+              <div className="text-white">
+                <span className="text-[10px] sm:text-xs font-bold text-accent uppercase tracking-wider">{activeGallery.category}</span>
+                <h4 className="text-sm sm:text-base font-extrabold tracking-tight mt-0.5">{activeGallery.title}</h4>
+              </div>
+              <button 
+                onClick={() => setIsFullScreenMode(false)}
+                className="p-3 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white transition-all cursor-pointer shadow-lg"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Slider container with drag */}
+            <motion.div 
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(e, info) => {
+                const swipeThreshold = 50;
+                if (info.offset.x < -swipeThreshold) {
+                  nextImage();
+                } else if (info.offset.x > swipeThreshold) {
+                  prevImage();
+                }
+              }}
+              className="relative w-full h-[80vh] flex items-center justify-center cursor-grab active:cursor-grabbing"
+            >
+              <div className="relative w-full h-full max-w-[95vw] max-h-[80vh]">
+                <Image 
+                  src={activeGallery.image_urls[activeImageIndex]} 
+                  alt={`${activeGallery.title} screenshot ${activeImageIndex + 1}`} 
+                  fill
+                  className="object-contain pointer-events-none"
+                  priority
+                />
+              </div>
+
+              {/* Slider Arrows */}
+              {activeGallery.image_urls.length > 1 && (
+                <>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      prevImage();
+                    }}
+                    className="absolute left-2 sm:left-6 p-4 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all cursor-pointer pointer-events-auto"
+                  >
+                    <ChevronLeft size={28} />
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      nextImage();
+                    }}
+                    className="absolute right-2 sm:right-6 p-4 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all cursor-pointer pointer-events-auto"
+                  >
+                    <ChevronRight size={28} />
+                  </button>
+                </>
+              )}
+            </motion.div>
+
+            {/* Index Counter */}
+            <div className="absolute bottom-6 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs font-mono text-gray-400">
+              Image {activeImageIndex + 1} of {activeGallery.image_urls.length} — Swipe / Drag / Left-Right Arrows
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
