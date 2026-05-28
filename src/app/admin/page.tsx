@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import { useStudio } from "@/context/StudioContext";
-import { Settings, Users, MessageSquare, Loader2, UploadCloud, Save, X, Globe, Trash2, Plus, TrendingUp, Star, ShieldCheck } from "lucide-react";
+import { Settings, Users, MessageSquare, Loader2, UploadCloud, Save, X, Globe, Trash2, Plus, TrendingUp, Star, ShieldCheck, Edit3 } from "lucide-react";
 
 export default function AdminDashboard() {
   const { settings, refreshSettings, isAdmin, loading: authLoading } = useStudio();

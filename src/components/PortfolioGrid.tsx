@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ExternalLink, PlayCircle, Laptop, FileText, ChevronLeft, ChevronRight, X, Eye, Images, Grid, Globe } from "lucide-react";
 import Image from "next/image";
@@ -49,6 +49,17 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
   const [activeGallery, setActiveGallery] = useState<any | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isGridView, setIsGridView] = useState(false);
+
+  useEffect(() => {
+    if (activeGallery) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [activeGallery]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
