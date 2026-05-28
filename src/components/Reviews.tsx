@@ -223,7 +223,7 @@ export default function Reviews() {
   };
 
   return (
-    <section id="reviews" className="relative z-20 bg-background pb-32 pt-10 px-6 border-t border-white/5 overflow-hidden">
+    <section id="reviews" className="relative z-20 bg-background pb-32 pt-10 px-4 sm:px-6 border-t border-white/5 overflow-hidden">
       {/* Background abstract glowing blobs */}
       <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-72 h-72 bg-accent/10 rounded-full blur-[100px] z-0 pointer-events-none" />
       <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-[120px] z-0 pointer-events-none" />
@@ -280,7 +280,7 @@ export default function Reviews() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="max-w-xl mx-auto mb-16 bg-zinc-950/70 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-2xl shadow-2xl overflow-hidden shadow-black/80"
+              className="max-w-xl mx-auto mb-16 bg-zinc-950/70 border border-white/10 rounded-3xl p-5 sm:p-8 backdrop-blur-2xl shadow-2xl overflow-hidden shadow-black/80"
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -403,7 +403,7 @@ export default function Reviews() {
 
         {/* Current User's active review card highlight */}
         {userReview && !isEditing && (
-          <div className="max-w-2xl mx-auto mb-16 bg-[#09090b]/80 border-2 border-accent/30 rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row gap-5 relative overflow-hidden backdrop-blur-md shadow-2xl shadow-accent/5">
+          <div className="max-w-2xl mx-auto mb-16 bg-[#09090b]/80 border-2 border-accent/30 rounded-3xl p-5 sm:p-8 flex flex-col sm:flex-row gap-5 relative overflow-hidden backdrop-blur-md shadow-2xl shadow-accent/5">
             <div className="absolute top-0 right-0 bg-accent text-[9px] font-bold tracking-widest text-white px-4 py-1.5 rounded-bl-xl uppercase">
               Your Review
             </div>
@@ -480,7 +480,7 @@ export default function Reviews() {
                   key={rev.id}
                   variants={itemVariants}
                   whileHover={{ y: -6, borderColor: "rgba(255,255,255,0.12)", backgroundColor: "rgba(255,255,255,0.02)" }}
-                  className="bg-white/[0.01] border border-white/5 p-6 rounded-3xl flex flex-col justify-between transition-all duration-300 group"
+                  className="bg-white/[0.01] border border-white/5 p-5 sm:p-6 rounded-3xl flex flex-col justify-between transition-all duration-300 group"
                 >
                   <div className="space-y-4">
                     {/* Stars and date */}

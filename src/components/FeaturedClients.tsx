@@ -56,7 +56,7 @@ export default function FeaturedClients() {
   };
 
   return (
-    <section id="featured-clients" className="relative z-20 bg-[#050505] pb-24 pt-16 px-6 border-t border-white/5 overflow-hidden">
+    <section id="featured-clients" className="relative z-20 bg-[#050505] pb-24 pt-16 px-4 sm:px-6 border-t border-white/5 overflow-hidden">
       {/* Background glowing glass effects */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-[120px] z-0 pointer-events-none" />
 
@@ -93,7 +93,7 @@ export default function FeaturedClients() {
                 key={client.id}
                 variants={itemVariants}
                 whileHover={{ y: -8, borderColor: "rgba(14, 165, 233, 0.3)", boxShadow: "0 0 30px rgba(14, 165, 233, 0.1)" }}
-                className="group bg-sky-500/[0.02] border border-sky-500/10 rounded-3xl p-8 backdrop-blur-2xl transition-all duration-500 relative flex flex-col items-center text-center shadow-[0_0_20px_rgba(14,165,233,0.05)] overflow-hidden"
+                className="group bg-sky-500/[0.02] border border-sky-500/10 rounded-3xl p-6 sm:p-8 backdrop-blur-2xl transition-all duration-500 relative flex flex-col items-center text-center shadow-[0_0_20px_rgba(14,165,233,0.05)] overflow-hidden"
               >
                 {/* Visual Glass blue back-glow on hover */}
                 <div className="absolute inset-0 bg-gradient-to-b from-sky-500/0 to-sky-500/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
