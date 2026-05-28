@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import { useStudio } from "@/context/StudioContext";
-import { Settings, Users, MessageSquare, Loader2, UploadCloud, Save, X, Globe, Trash2, Plus, TrendingUp } from "lucide-react";
+import { Settings, Users, MessageSquare, Loader2, UploadCloud, Save, X, Globe, Trash2, Plus, TrendingUp, Star, ShieldCheck } from "lucide-react";
 
 export default function AdminDashboard() {
   const { settings, refreshSettings, isAdmin, loading: authLoading } = useStudio();
@@ -32,6 +32,12 @@ export default function AdminDashboard() {
   const [portfolioFiles, setPortfolioFiles] = useState<FileList | null>(null);
   const [selectedAppointmentIds, setSelectedAppointmentIds] = useState<string[]>([]);
 
+  // Reviews & Permissions States
+  const [reviewPermissions, setReviewPermissions] = useState<any[]>([]);
+  const [allReviews, setAllReviews] = useState<any[]>([]);
+  const [newPermissionEmail, setNewPermissionEmail] = useState("");
+  const [savingPermission, setSavingPermission] = useState(false);
+
   useEffect(() => {
     if (isAdmin) {
       fetchData();
@@ -46,16 +52,74 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     setLoadingData(true);
-    const [apptsRes, inqsRes, portRes] = await Promise.all([
-      supabase.from("appointments").select("*").order("date", { ascending: false }),
-      supabase.from("contact_inquiries").select("*").order("created_at", { ascending: false }),
-      supabase.from("portfolio").select("*").order("created_at", { ascending: false }),
-    ]);
+    try {
+      const [apptsRes, inqsRes, portRes, permissionsRes, reviewsRes] = await Promise.all([
+        supabase.from("appointments").select("*").order("date", { ascending: false }),
+        supabase.from("contact_inquiries").select("*").order("created_at", { ascending: false }),
+        supabase.from("portfolio").select("*").order("created_at", { ascending: false }),
+        supabase.from("reviews_permissions").select("*").order("created_at", { ascending: false }),
+        supabase.from("reviews").select("*").order("created_at", { ascending: false }),
+      ]);
 
-    if (apptsRes.data) setAppointments(apptsRes.data);
-    if (inqsRes.data) setInquiries(inqsRes.data);
-    if (portRes.data) setPortfolios(portRes.data);
-    setLoadingData(false);
+      if (apptsRes.data) setAppointments(apptsRes.data);
+      if (inqsRes.data) setInquiries(inqsRes.data);
+      if (portRes.data) setPortfolios(portRes.data);
+      if (permissionsRes.data) setReviewPermissions(permissionsRes.data);
+      if (reviewsRes.data) setAllReviews(reviewsRes.data);
+    } catch (err) {
+      console.error("Failed to load dashboard data:", err);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  const handleAddPermissionEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPermissionEmail) return;
+    setSavingPermission(true);
+    try {
+      const { error } = await supabase
+        .from("reviews_permissions")
+        .insert([{ email: newPermissionEmail.trim().toLowerCase() }]);
+
+      if (error) throw error;
+
+      setNewPermissionEmail("");
+      const { data } = await supabase.from("reviews_permissions").select("*").order("created_at", { ascending: false });
+      if (data) setReviewPermissions(data);
+      alert("Review permission granted successfully!");
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to grant permission: " + (err.message || err));
+    } finally {
+      setSavingPermission(false);
+    }
+  };
+
+  const handleDeletePermissionEmail = async (id: string) => {
+    if (!confirm("Are you sure you want to revoke review permission for this email?")) return;
+    try {
+      const { error } = await supabase.from("reviews_permissions").delete().eq("id", id);
+      if (error) throw error;
+      setReviewPermissions(prev => prev.filter(p => p.id !== id));
+      alert("Review permission revoked!");
+    } catch (err) {
+      console.error(err);
+      alert("Error revoking permission.");
+    }
+  };
+
+  const handleDeleteReview = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this client review permanently?")) return;
+    try {
+      const { error } = await supabase.from("reviews").delete().eq("id", id);
+      if (error) throw error;
+      setAllReviews(prev => prev.filter(r => r.id !== id));
+      alert("Review deleted successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting review.");
+    }
   };
 
   const handleUpdateStatus = async (id: string, currentStatus: string) => {
@@ -260,6 +324,12 @@ export default function AdminDashboard() {
             className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all whitespace-nowrap ${activeTab === "inquiries" ? "bg-accent/20 text-accent" : "text-gray-400 hover:bg-white/5"}`}
           >
             <MessageSquare size={18} /> Contact Inquiries ({inquiries.length})
+          </button>
+          <button 
+            onClick={() => setActiveTab("reviews")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all whitespace-nowrap ${activeTab === "reviews" ? "bg-accent/20 text-accent" : "text-gray-400 hover:bg-white/5"}`}
+          >
+            <Star size={18} className="text-yellow-500" /> Manage Reviews
           </button>
           
           <Link 
@@ -541,6 +611,113 @@ export default function AdminDashboard() {
                   )}
                 </tbody>
               </table>
+            </motion.div>
+          )}
+
+          {activeTab === "reviews" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
+              {/* Left Column: Permissions */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2">Review Permissions</h3>
+                  <p className="text-gray-400 text-sm">Grant or revoke permission for clients to write a review.</p>
+                </div>
+
+                <form onSubmit={handleAddPermissionEmail} className="flex gap-3 bg-black/30 p-4 rounded-xl border border-white/5">
+                  <input
+                    required
+                    type="email"
+                    value={newPermissionEmail}
+                    onChange={(e) => setNewPermissionEmail(e.target.value)}
+                    placeholder="client@email.com"
+                    className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    disabled={savingPermission}
+                    className="bg-accent hover:bg-accent/90 text-white font-medium px-4 py-2 rounded-xl transition-all text-xs flex items-center gap-1 shrink-0 cursor-pointer"
+                  >
+                    {savingPermission ? <Loader2 className="animate-spin" size={12} /> : <Plus size={12} />}
+                    Grant Permission
+                  </button>
+                </form>
+
+                <div className="bg-black/20 border border-white/5 rounded-2xl p-4 overflow-hidden max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-850">
+                  <h4 className="text-sm font-semibold text-gray-400 mb-3 block">Authorized Client Emails ({reviewPermissions.length})</h4>
+                  <div className="space-y-2">
+                    {reviewPermissions.map((perm) => (
+                      <div key={perm.id} className="flex items-center justify-between bg-white/[0.01] border border-white/5 p-3 rounded-xl hover:bg-white/[0.02] transition-colors">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck size={14} className="text-accent" />
+                          <span className="text-white text-xs md:text-sm truncate max-w-[200px] md:max-w-xs">{perm.email}</span>
+                        </div>
+                        <button
+                          onClick={() => handleDeletePermissionEmail(perm.id)}
+                          className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                          title="Revoke Permission"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    {reviewPermissions.length === 0 && (
+                      <p className="text-gray-500 text-xs py-4 text-center">No client email permissions granted yet.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Reviews */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2">Published Reviews</h3>
+                  <p className="text-gray-400 text-sm">View and moderate customer reviews displayed on your website.</p>
+                </div>
+
+                <div className="bg-black/20 border border-white/5 rounded-2xl p-4 overflow-hidden max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-850 space-y-3">
+                  {allReviews.map((rev) => (
+                    <div key={rev.id} className="bg-white/[0.01] border border-white/5 p-4 rounded-xl space-y-3 hover:bg-white/[0.02] transition-colors relative group">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full overflow-hidden relative bg-zinc-800 border border-white/10 shrink-0">
+                            {rev.avatar_url ? (
+                              <img src={rev.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-mono uppercase">{rev.name[0]}</div>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="text-white font-semibold text-xs md:text-sm flex items-center gap-1">
+                              {rev.name}
+                              <ShieldCheck size={12} className="text-accent" />
+                            </h4>
+                            <span className="text-[10px] text-gray-500 font-mono block truncate max-w-[150px]">{rev.email}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <div className="flex text-yellow-500 shrink-0">
+                            {Array.from({ length: rev.rating }).map((_, i) => (
+                              <Star key={i} size={10} className="fill-current" />
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => handleDeleteReview(rev.id)}
+                            className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                            title="Delete Review"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-gray-300 text-xs leading-relaxed italic">"{rev.content}"</p>
+                    </div>
+                  ))}
+                  {allReviews.length === 0 && (
+                    <p className="text-gray-500 text-xs py-8 text-center">No customer reviews published yet.</p>
+                  )}
+                </div>
+              </div>
             </motion.div>
           )}
 
