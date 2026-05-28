@@ -151,6 +151,17 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteAppointment = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this appointment?")) return;
+    const { error } = await supabase.from("appointments").delete().eq("id", id);
+    if (!error) {
+      setAppointments(prev => prev.filter(a => a.id !== id));
+    } else {
+      console.error(error);
+      alert("Error deleting appointment.");
+    }
+  };
+
   if (authLoading || loadingData) {
     return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-accent"><Loader2 className="animate-spin" size={32} /></div>;
   }
@@ -341,6 +352,13 @@ export default function AdminDashboard() {
                           className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-all"
                         >
                           Mark {a.status === 'pending' ? 'Done' : 'Pending'}
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteAppointment(a.id)}
+                          className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1"
+                          title="Delete Appointment"
+                        >
+                          <Trash2 size={13} /> Delete
                         </button>
                       </td>
                     </tr>
