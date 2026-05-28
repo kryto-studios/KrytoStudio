@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import { useStudio } from "@/context/StudioContext";
-import { Settings, Users, MessageSquare, Loader2, UploadCloud, Save, X, Globe, Trash2, Plus, TrendingUp, Star, ShieldCheck, Edit3 } from "lucide-react";
+import { Settings, Users, MessageSquare, Loader2, UploadCloud, Save, X, Globe, Trash2, Plus, TrendingUp, Star, ShieldCheck, Edit3, ArrowLeft, ArrowRight } from "lucide-react";
 
 export default function AdminDashboard() {
   const { settings, refreshSettings, isAdmin, loading: authLoading } = useStudio();
@@ -257,6 +257,43 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error(err);
       alert("Error deleting featured client.");
+    }
+  };
+
+  const handleReorderFeaturedClient = async (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= featuredClients.length) return;
+
+    const currentClient = featuredClients[index];
+    const targetClient = featuredClients[targetIndex];
+
+    try {
+      // Swap their created_at timestamps
+      const tempTime = currentClient.created_at;
+      
+      const { error: err1 } = await supabase
+        .from("featured_clients")
+        .update({ created_at: targetClient.created_at })
+        .eq("id", currentClient.id);
+
+      const { error: err2 } = await supabase
+        .from("featured_clients")
+        .update({ created_at: tempTime })
+        .eq("id", targetClient.id);
+
+      if (err1 || err2) throw err1 || err2;
+
+      // Optimistically update local state immediately
+      const updatedList = [...featuredClients];
+      updatedList[index] = { ...currentClient, created_at: targetClient.created_at };
+      updatedList[targetIndex] = { ...targetClient, created_at: tempTime };
+      
+      // Sort descending by created_at since Supabase orders by created_at DESC
+      updatedList.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setFeaturedClients(updatedList);
+    } catch (err: any) {
+      console.error("Failed to reorder featured client:", err);
+      alert("Failed to reorder client: " + (err.message || err));
     }
   };
 
@@ -963,7 +1000,7 @@ export default function AdminDashboard() {
                       <h4 className="text-sm font-semibold text-gray-400 mb-4 block">Active Highlights (Max 3 Shown)</h4>
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {featuredClients.map((client) => (
+                        {featuredClients.map((client, index) => (
                           <div key={client.id} className="bg-sky-500/[0.02] border border-sky-500/10 p-4 rounded-xl flex items-start gap-3 relative group">
                             <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-sky-500/20 bg-zinc-900">
                               <img src={client.photo_url} alt={client.name} className="w-full h-full object-cover" />
@@ -978,6 +1015,24 @@ export default function AdminDashboard() {
                             </div>
 
                             <div className="absolute top-2 right-2 flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                              {index > 0 && (
+                                <button
+                                  onClick={() => handleReorderFeaturedClient(index, "up")}
+                                  className="text-sky-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                                  title="Move Left (Earlier)"
+                                >
+                                  <ArrowLeft size={12} />
+                                </button>
+                              )}
+                              {index < featuredClients.length - 1 && (
+                                <button
+                                  onClick={() => handleReorderFeaturedClient(index, "down")}
+                                  className="text-sky-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                                  title="Move Right (Later)"
+                                >
+                                  <ArrowRight size={12} />
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleEditFeaturedClient(client)}
                                 className="text-accent hover:text-accent/80 p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
