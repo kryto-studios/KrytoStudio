@@ -425,7 +425,7 @@ export default function AdminDashboard() {
   if (!isAdmin) return null; // Middleware should catch this, fallback
 
   return (
-    <div className="min-h-screen bg-[#050505] pt-32 pb-20 px-6">
+    <div className="min-h-screen bg-[#050505] pt-32 pb-20 px-6" data-lenis-prevent>
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold text-white mb-8">Admin Dashboard</h1>
         
