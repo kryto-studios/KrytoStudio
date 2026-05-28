@@ -351,7 +351,7 @@ export default function AdminDashboard() {
                     <option value="Graphics Design">Graphics Design</option>
                   </select>
                 </div>
-                {newPortfolio.category === "Software Development" && (
+                {newPortfolio.category !== "Video Editing" && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-300 ml-1 block">Project Images / Screenshots (Multiple)</label>
                     <input 
@@ -369,12 +369,12 @@ export default function AdminDashboard() {
                 <div>
                   <label className="text-sm font-medium text-gray-300 ml-1">URL (YouTube / Website / Drive)</label>
                   <input 
-                    required={newPortfolio.category !== "Software Development"} 
+                    required={(!portfolioFiles || portfolioFiles.length === 0) && newPortfolio.category !== "Graphics Design"} 
                     type="url" 
                     value={newPortfolio.link} 
                     onChange={e => setNewPortfolio({...newPortfolio, link: e.target.value})} 
                     className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 mt-1" 
-                    placeholder={newPortfolio.category === "Software Development" ? "https://... (Optional)" : "https://..."} 
+                    placeholder={newPortfolio.category !== "Video Editing" ? "https://... (Optional)" : "https://..."} 
                   />
                 </div>
                 <button type="submit" disabled={savingPortfolio} className="bg-accent hover:bg-accent/90 text-white font-medium py-3 px-6 rounded-xl transition-all flex items-center gap-2 mt-4">

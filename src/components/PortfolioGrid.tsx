@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ExternalLink, PlayCircle, Laptop, FileText, ChevronLeft, ChevronRight, X, Eye, Images } from "lucide-react";
+import { ExternalLink, PlayCircle, Laptop, FileText, ChevronLeft, ChevronRight, X, Eye, Images, Grid, Globe } from "lucide-react";
 import Image from "next/image";
 
 const getYoutubeVideoId = (url: string) => {
@@ -48,6 +48,7 @@ const LazyYoutubePlayer = ({ videoId, title }: { videoId: string; title: string 
 export default function PortfolioGrid({ items }: { items: any[] }) {
   const [activeGallery, setActiveGallery] = useState<any | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isGridView, setIsGridView] = useState(false);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -62,6 +63,7 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
   const openGallery = (item: any) => {
     setActiveGallery(item);
     setActiveImageIndex(0);
+    setIsGridView(false);
   };
 
   const nextImage = () => {
@@ -82,6 +84,15 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
           const videoId = isYoutube ? getYoutubeVideoId(item.link) : null;
           const isDrive = item.link && item.link.includes("drive.google.com");
           const hasGallery = item.image_urls && item.image_urls.length > 0;
+
+          // Try parsing domain for mockup URL display
+          let displayDomain = "kryto.studio/project";
+          if (item.link && item.link.startsWith("http")) {
+            try {
+              const parsed = new URL(item.link);
+              displayDomain = parsed.hostname;
+            } catch (e) {}
+          }
 
           return (
             <motion.div 
@@ -107,7 +118,47 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500 relative z-0" 
                   />
+                ) : item.category === "Web Development" ? (
+                  /* Premium Website Front Page simulated mock browser frame */
+                  <div className="w-full h-full bg-[#0a0a0a] flex flex-col relative z-0 group-hover:bg-[#0c0c0c] transition-colors duration-300 overflow-hidden">
+                    {/* Simulated Browser Header */}
+                    <div className="h-6 bg-white/[0.03] border-b border-white/5 flex items-center px-3 justify-between shrink-0">
+                      {/* Window Controls */}
+                      <div className="flex gap-1.5 shrink-0">
+                        <span className="w-2 h-2 rounded-full bg-red-500/60" />
+                        <span className="w-2 h-2 rounded-full bg-yellow-500/60" />
+                        <span className="w-2 h-2 rounded-full bg-green-500/60" />
+                      </div>
+                      {/* Address Bar */}
+                      <div className="bg-white/[0.02] border border-white/5 text-[9px] text-gray-500 px-4 py-0.5 rounded-md truncate max-w-[160px] text-center flex items-center gap-1 font-mono">
+                        <Globe size={8} className="text-gray-600" />
+                        {displayDomain}
+                      </div>
+                      <div className="w-8" />
+                    </div>
+
+                    {/* Simulated Website Hero Section content */}
+                    <div className="flex-1 p-4 flex flex-col justify-center relative overflow-hidden">
+                      {/* Glowing color blobs in background */}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-accent/20 rounded-full blur-[40px] z-0 pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+                      <div className="absolute top-10 right-4 w-16 h-16 bg-purple-500/10 rounded-full blur-[20px] z-0 pointer-events-none" />
+
+                      <div className="relative z-10 text-center space-y-1.5">
+                        <span className="text-[9px] font-bold text-accent tracking-widest uppercase bg-accent/10 px-2 py-0.5 rounded-full inline-block">LIVE PORTFOLIO</span>
+                        <h4 className="text-sm md:text-base font-extrabold text-white line-clamp-1 max-w-[85%] mx-auto tracking-tight">{item.title}</h4>
+                        <div className="w-10 h-0.5 bg-accent/50 mx-auto rounded-full" />
+                        
+                        {/* Mock columns layout to represent dashboard/site */}
+                        <div className="grid grid-cols-3 gap-2 mt-4 pt-1 max-w-[200px] mx-auto opacity-45 group-hover:opacity-60 transition-opacity">
+                          <div className="h-6 bg-white/5 border border-white/5 rounded-md flex items-center justify-center text-[7px] text-gray-400 font-mono">Hero</div>
+                          <div className="h-6 bg-white/5 border border-white/5 rounded-md flex items-center justify-center text-[7px] text-gray-400 font-mono">Grid</div>
+                          <div className="h-6 bg-white/5 border border-white/5 rounded-md flex items-center justify-center text-[7px] text-gray-400 font-mono">Action</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
+                  /* Standard fallback */
                   <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-[#050505] relative z-0">
                     {item.category.includes("Video") ? <PlayCircle size={48} className="text-gray-700 mb-2" /> : <Laptop size={48} className="text-gray-700 mb-2" />}
                     <span className="text-gray-600 font-medium text-sm">{item.category}</span>
@@ -174,73 +225,113 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
               className="bg-white/[0.02] border border-white/10 rounded-3xl p-6 md:p-8 max-w-5xl w-full max-h-[90vh] overflow-hidden backdrop-blur-2xl shadow-[0_0_50px_rgba(0,240,255,0.15)] flex flex-col relative"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Close button */}
-              <button 
-                onClick={() => setActiveGallery(null)}
-                className="absolute top-6 right-6 p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white transition-all z-30 cursor-pointer"
-              >
-                <X size={20} />
-              </button>
+              {/* Top actions toolbar */}
+              <div className="absolute top-6 right-6 flex items-center gap-2 z-30">
+                {/* Grid / Slideshow toggle */}
+                <button 
+                  onClick={() => setIsGridView(!isGridView)}
+                  className="p-2.5 px-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition-all text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isGridView ? (
+                    <><Images size={14} className="text-accent animate-pulse" /> Slideshow</>
+                  ) : (
+                    <><Grid size={14} className="text-accent" /> Grid View ({activeGallery.image_urls.length})</>
+                  )}
+                </button>
+                
+                {/* Close button */}
+                <button 
+                  onClick={() => setActiveGallery(null)}
+                  className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white transition-all cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
               <div className="mb-6">
                 <span className="text-xs font-bold text-accent uppercase tracking-widest">{activeGallery.category}</span>
-                <h3 className="text-2xl font-bold text-white mt-1">{activeGallery.title}</h3>
+                <h3 className="text-2xl font-bold text-white mt-1 pr-32">{activeGallery.title}</h3>
               </div>
 
-              {/* Main image viewer with slider arrows */}
-              <div className="relative flex-1 min-h-[300px] md:min-h-[450px] bg-black/40 border border-white/5 rounded-2xl overflow-hidden flex items-center justify-center group/view">
-                <div className="relative w-full h-full aspect-[16/9] max-h-[55vh]">
-                  <Image 
-                    src={activeGallery.image_urls[activeImageIndex]} 
-                    alt={`${activeGallery.title} screenshot ${activeImageIndex + 1}`} 
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-
-                {/* Arrow navigation */}
-                {activeGallery.image_urls.length > 1 && (
-                  <>
-                    <button 
-                      onClick={prevImage}
-                      className="absolute left-4 p-3 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all transform -translate-y-1/2 top-1/2 opacity-80 hover:opacity-100 cursor-pointer"
-                    >
-                      <ChevronLeft size={24} />
-                    </button>
-                    <button 
-                      onClick={nextImage}
-                      className="absolute right-4 p-3 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all transform -translate-y-1/2 top-1/2 opacity-80 hover:opacity-100 cursor-pointer"
-                    >
-                      <ChevronRight size={24} />
-                    </button>
-                  </>
-                )}
-
-                {/* Counter index pill */}
-                <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/60 border border-white/10 rounded-full text-xs font-medium text-gray-400">
-                  Image {activeImageIndex + 1} of {activeGallery.image_urls.length}
-                </div>
-              </div>
-
-              {/* Thumbnail Strip */}
-              {activeGallery.image_urls.length > 1 && (
-                <div className="flex gap-3 mt-6 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-zinc-800 justify-start md:justify-center">
+              {isGridView ? (
+                /* Dynamic Grid View display showing all screenshots at once */
+                <div className="flex-1 overflow-y-auto max-h-[65vh] p-2 grid grid-cols-2 sm:grid-cols-3 gap-4 scrollbar-thin scrollbar-thumb-zinc-800 pr-1 select-none">
                   {activeGallery.image_urls.map((url: string, index: number) => (
-                    <button
+                    <div 
                       key={url}
-                      onClick={() => setActiveImageIndex(index)}
-                      className={`relative w-20 aspect-video rounded-lg overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${activeImageIndex === index ? "border-accent shadow-[0_0_10px_rgba(14,165,233,0.5)] scale-105" : "border-white/10 opacity-50 hover:opacity-100"}`}
+                      onClick={() => {
+                        setActiveImageIndex(index);
+                        setIsGridView(false); // Switch back to slideshow to expand this image
+                      }}
+                      className="relative aspect-[16/9] rounded-2xl overflow-hidden border border-white/10 hover:border-accent/40 hover:scale-[1.03] transition-all duration-300 cursor-pointer group/griditem bg-black/40"
                     >
-                      <Image 
-                        src={url} 
-                        alt="thumbnail" 
-                        fill
-                        className="object-cover"
-                      />
-                    </button>
+                      <Image src={url} alt="screenshot" fill className="object-cover group-hover/griditem:scale-105 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/griditem:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                        <span className="text-white text-xs font-semibold bg-accent/80 shadow-[0_0_15px_rgba(14,165,233,0.3)] px-3 py-1.5 rounded-full flex items-center gap-1">
+                          <Eye size={12} /> Expand
+                        </span>
+                      </div>
+                    </div>
                   ))}
                 </div>
+              ) : (
+                /* Main image viewer with slider arrows */
+                <>
+                  <div className="relative flex-1 min-h-[300px] md:min-h-[450px] bg-black/40 border border-white/5 rounded-2xl overflow-hidden flex items-center justify-center group/view select-none">
+                    <div className="relative w-full h-full aspect-[16/9] max-h-[55vh]">
+                      <Image 
+                        src={activeGallery.image_urls[activeImageIndex]} 
+                        alt={`${activeGallery.title} screenshot ${activeImageIndex + 1}`} 
+                        fill
+                        className="object-contain"
+                        priority
+                      />
+                    </div>
+
+                    {/* Arrow navigation */}
+                    {activeGallery.image_urls.length > 1 && (
+                      <>
+                        <button 
+                          onClick={prevImage}
+                          className="absolute left-4 p-3 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all transform -translate-y-1/2 top-1/2 opacity-80 hover:opacity-100 cursor-pointer"
+                        >
+                          <ChevronLeft size={24} />
+                        </button>
+                        <button 
+                          onClick={nextImage}
+                          className="absolute right-4 p-3 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all transform -translate-y-1/2 top-1/2 opacity-80 hover:opacity-100 cursor-pointer"
+                        >
+                          <ChevronRight size={24} />
+                        </button>
+                      </>
+                    )}
+
+                    {/* Counter index pill */}
+                    <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/60 border border-white/10 rounded-full text-xs font-medium text-gray-400">
+                      Image {activeImageIndex + 1} of {activeGallery.image_urls.length}
+                    </div>
+                  </div>
+
+                  {/* Thumbnail Strip */}
+                  {activeGallery.image_urls.length > 1 && (
+                    <div className="flex gap-3 mt-6 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-zinc-800 justify-start md:justify-center">
+                      {activeGallery.image_urls.map((url: string, index: number) => (
+                        <button
+                          key={url}
+                          onClick={() => setActiveImageIndex(index)}
+                          className={`relative w-20 aspect-video rounded-lg overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${activeImageIndex === index ? "border-accent shadow-[0_0_10px_rgba(14,165,233,0.5)] scale-105" : "border-white/10 opacity-50 hover:opacity-100"}`}
+                        >
+                          <Image 
+                            src={url} 
+                            alt="thumbnail" 
+                            fill
+                            className="object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </motion.div>
           </motion.div>
