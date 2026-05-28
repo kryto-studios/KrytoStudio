@@ -61,21 +61,40 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const init = async () => {
-      setLoading(true);
-      await Promise.all([fetchSettings(), fetchUser()]);
-      setLoading(false);
-    };
-    init();
+    let active = true;
+
+    // Fetch settings immediately
+    fetchSettings();
 
     // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!active) return;
+      
       const currentUser = session?.user || null;
       setUser(currentUser);
       setIsAdmin(!!currentUser?.email && ["gamermirchi08@gmail.com", "krytostudio@gmail.com"].includes(currentUser.email));
+      
+      // When Supabase fires auth change, it guarantees that initial session check is complete
+      setLoading(false);
     });
 
+    // Eager fallback session loader
+    const checkInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (active && session) {
+          setUser(session.user);
+          setIsAdmin(!!session.user?.email && ["gamermirchi08@gmail.com", "krytostudio@gmail.com"].includes(session.user.email));
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Initial session check failed:", err);
+      }
+    };
+    checkInitialSession();
+
     return () => {
+      active = false;
       authListener.subscription.unsubscribe();
     };
   }, []);

@@ -28,7 +28,7 @@ export default function AppointmentPage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push("/login");
+      router.push("/login?redirect=/appointment");
     }
   }, [user, authLoading, router]);
 

@@ -52,8 +52,14 @@ async function getCroppedImg(
 }
 
 export default function ProfilePage() {
-  const { user, isAdmin, logout } = useStudio();
+  const { user, isAdmin, loading: authLoading, logout } = useStudio();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login?redirect=/profile");
+    }
+  }, [user, authLoading, router]);
 
   const [activeTab, setActiveTab] = useState<"Pending" | "Completed">("Pending");
 
@@ -170,6 +176,14 @@ export default function ProfilePage() {
 
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6 } } };
+
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] pt-32 pb-20 px-6 relative">

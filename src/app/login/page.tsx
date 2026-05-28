@@ -26,17 +26,19 @@ function LoginContent() {
     setLoading(true);
     setError(null);
 
+    const redirectPath = searchParams.get("redirect") || "/";
+
     try {
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         
         // If Supabase has 'Confirm Email' disabled, data.session will be populated and they are auto-logged in.
-        window.location.href = "/";
+        window.location.href = redirectPath;
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        window.location.href = "/"; // Redirect to home or dashboard
+        window.location.href = redirectPath; // Redirect to specified path or home/dashboard
       }
     } catch (err: any) {
       setError(err.message);
@@ -47,7 +49,8 @@ function LoginContent() {
 
   const handleGoogleLogin = async () => {
     try {
-      const redirectURL = window.location.origin + '/auth/callback';
+      const redirectPath = searchParams.get("redirect") || "/";
+      const redirectURL = window.location.origin + '/auth/callback?next=' + encodeURIComponent(redirectPath);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
