@@ -41,6 +41,10 @@ export default function Reviews() {
     }
   };
 
+  if (!loading && reviews.length === 0) {
+    return null;
+  }
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
