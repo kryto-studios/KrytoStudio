@@ -246,7 +246,7 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md touch-pan-x touch-pan-y touch-pinch-zoom"
             onClick={() => setActiveGallery(null)}
             data-lenis-prevent
           >
@@ -345,23 +345,36 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
                       <>
                         <button 
                           onClick={prevImage}
-                          className="absolute left-4 p-3 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all transform -translate-y-1/2 top-1/2 opacity-80 hover:opacity-100 cursor-pointer z-30"
+                          className="hidden sm:block absolute left-4 p-3 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all transform -translate-y-1/2 top-1/2 opacity-80 hover:opacity-100 cursor-pointer z-30"
                         >
                           <ChevronLeft size={24} />
                         </button>
                         <button 
                           onClick={nextImage}
-                          className="absolute right-4 p-3 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all transform -translate-y-1/2 top-1/2 opacity-80 hover:opacity-100 cursor-pointer z-30"
+                          className="hidden sm:block absolute right-4 p-3 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all transform -translate-y-1/2 top-1/2 opacity-80 hover:opacity-100 cursor-pointer z-30"
                         >
                           <ChevronRight size={24} />
                         </button>
                       </>
                     )}
 
-                    {/* Counter index pill */}
-                    <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/60 border border-white/10 rounded-full text-xs font-medium text-gray-400 z-30">
-                      Image {activeImageIndex + 1} of {activeGallery.image_urls.length}
-                    </div>
+                    {/* Instagram-style Dots Pagination */}
+                    {activeGallery.image_urls.length > 1 && (
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-30">
+                        {activeGallery.image_urls.map((_: any, idx: number) => (
+                          <button
+                            key={idx}
+                            onClick={() => setActiveImageIndex(idx)}
+                            className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                              activeImageIndex === idx 
+                                ? "w-4 bg-accent" 
+                                : "w-1.5 bg-white/20 hover:bg-white/40"
+                            }`}
+                            aria-label={`Go to slide ${idx + 1}`}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Thumbnail Strip */}
@@ -397,7 +410,7 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/98 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 select-none"
+            className="fixed inset-0 z-[100] bg-black/98 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 select-none touch-pan-x touch-pan-y touch-pinch-zoom"
             data-lenis-prevent
           >
             {/* Top Toolbar */}
@@ -447,7 +460,7 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
                       e.stopPropagation();
                       prevImage();
                     }}
-                    className="absolute left-2 sm:left-6 p-4 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all cursor-pointer pointer-events-auto"
+                    className="hidden sm:block absolute left-2 sm:left-6 p-4 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all cursor-pointer pointer-events-auto z-30"
                   >
                     <ChevronLeft size={28} />
                   </button>
@@ -456,7 +469,7 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
                       e.stopPropagation();
                       nextImage();
                     }}
-                    className="absolute right-2 sm:right-6 p-4 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all cursor-pointer pointer-events-auto"
+                    className="hidden sm:block absolute right-2 sm:right-6 p-4 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 text-white transition-all cursor-pointer pointer-events-auto z-30"
                   >
                     <ChevronRight size={28} />
                   </button>
@@ -464,10 +477,23 @@ export default function PortfolioGrid({ items }: { items: any[] }) {
               )}
             </motion.div>
 
-            {/* Index Counter */}
-            <div className="absolute bottom-6 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs font-mono text-gray-400">
-              Image {activeImageIndex + 1} of {activeGallery.image_urls.length} — Swipe / Drag / Left-Right Arrows
-            </div>
+            {/* Instagram-style Dots Pagination */}
+            {activeGallery.image_urls.length > 1 && (
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-[110]">
+                {activeGallery.image_urls.map((_: any, idx: number) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImageIndex(idx)}
+                    className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                      activeImageIndex === idx 
+                        ? "w-4 bg-accent shadow-[0_0_8px_rgba(14,165,233,0.6)]" 
+                        : "w-1.5 bg-white/20 hover:bg-white/40"
+                    }`}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
