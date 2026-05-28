@@ -1,190 +1,13 @@
 "use client";
 
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Zap } from 'lucide-react';
 import { useStudio } from '@/context/StudioContext';
-
-// A utility function for class names
-const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
+import { DottedSurface } from "@/components/ui/dotted-surface";
 
 export default function Hero() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { settings } = useStudio();
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    let animationFrameId: number;
-    let particles: Particle[] = [];
-    const mouse = { x: null as number | null, y: null as number | null, radius: 200 };
-
-    class Particle {
-      x: number;
-      y: number;
-      directionX: number;
-      directionY: number;
-      size: number;
-      color: string;
-
-      constructor(x: number, y: number, directionX: number, directionY: number, size: number, color: string) {
-        this.x = x;
-        this.y = y;
-        this.directionX = directionX;
-        this.directionY = directionY;
-        this.size = size;
-        this.color = color;
-      }
-
-      draw() {
-        if (!ctx) return;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-      }
-
-      update() {
-        if (!canvas) return;
-        
-        // Strictly bounce off boundary edges and clamp coordinates to keep particles inside the screen!
-        if (this.x < this.size) {
-          this.x = this.size;
-          this.directionX = -this.directionX;
-        } else if (this.x > canvas.width - this.size) {
-          this.x = canvas.width - this.size;
-          this.directionX = -this.directionX;
-        }
-        
-        if (this.y < this.size) {
-          this.y = this.size;
-          this.directionY = -this.directionY;
-        } else if (this.y > canvas.height - this.size) {
-          this.y = canvas.height - this.size;
-          this.directionY = -this.directionY;
-        }
-
-        // Mouse collision detection - dynamic gentle push that maintains mesh links
-        if (mouse.x !== null && mouse.y !== null) {
-          let dx = mouse.x - this.x;
-          let dy = mouse.y - this.y;
-          let distance = Math.sqrt(dx * dx + dy * dy);
-          if (distance < mouse.radius) {
-            const forceDirectionX = dx / distance;
-            const forceDirectionY = dy / distance;
-            const force = (mouse.radius - distance) / mouse.radius;
-            
-            // Gentler push force (2.2 instead of 5) to keep connections from tearing completely apart
-            this.x -= forceDirectionX * force * 2.2;
-            this.y -= forceDirectionY * force * 2.2;
-          }
-        }
-
-        this.x += this.directionX;
-        this.y += this.directionY;
-        this.draw();
-      }
-    }
-
-    function init() {
-      if (!canvas) return;
-      particles = [];
-      let numberOfParticles = (canvas.height * canvas.width) / 9000;
-      for (let i = 0; i < numberOfParticles; i++) {
-        let size = (Math.random() * 2) + 1;
-        let x = (Math.random() * ((canvas.width - size * 2) - (size * 2)) + size * 2);
-        let y = (Math.random() * ((canvas.height - size * 2) - (size * 2)) + size * 2);
-        let directionX = (Math.random() * 0.4) - 0.2;
-        let directionY = (Math.random() * 0.4) - 0.2;
-        let color = 'rgba(191, 128, 255, 0.8)'; // Brighter purple
-        particles.push(new Particle(x, y, directionX, directionY, size, color));
-      }
-    }
-
-    const resizeCanvas = () => {
-      if (!canvas) return;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      init(); 
-    };
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    const connect = () => {
-      if (!canvas || !ctx) return;
-      let opacityValue = 1;
-      for (let a = 0; a < particles.length; a++) {
-        for (let b = a; b < particles.length; b++) {
-          let distance = ((particles[a].x - particles[b].x) * (particles[a].x - particles[b].x))
-              + ((particles[a].y - particles[b].y) * (particles[a].y - particles[b].y));
-          
-          if (distance < (canvas.width / 7) * (canvas.height / 7)) {
-            opacityValue = 1 - (distance / 20000);
-            
-            let dx_mouse_a = 0;
-            let dy_mouse_a = 0;
-            if (mouse.x !== null && mouse.y !== null) {
-              dx_mouse_a = particles[a].x - mouse.x;
-              dy_mouse_a = particles[a].y - mouse.y;
-            }
-            let distance_mouse_a = Math.sqrt(dx_mouse_a*dx_mouse_a + dy_mouse_a*dy_mouse_a);
-
-            if (mouse.x && distance_mouse_a < mouse.radius) {
-                 ctx.strokeStyle = `rgba(255, 255, 255, ${opacityValue})`;
-            } else {
-                 ctx.strokeStyle = `rgba(200, 150, 255, ${opacityValue})`;
-            }
-            
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(particles[a].x, particles[a].y);
-            ctx.lineTo(particles[b].x, particles[b].y);
-            ctx.stroke();
-          }
-        }
-      }
-    };
-
-    const animate = () => {
-      if (!ctx || !canvas) return;
-      animationFrameId = requestAnimationFrame(animate);
-      // Set the background color inside the canvas draw loop
-      ctx.fillStyle = 'black';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      for (let i = 0; i < particles.length; i++) {
-        particles[i].update();
-      }
-      connect();
-    };
-    
-    const handleMouseMove = (event: MouseEvent) => {
-      mouse.x = event.clientX;
-      mouse.y = event.clientY;
-    };
-    
-    const handleMouseOut = () => {
-      mouse.x = null;
-      mouse.y = null;
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseout', handleMouseOut);
-
-    init();
-    animate();
-
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseout', handleMouseOut);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
 
   const fadeUpVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -206,8 +29,8 @@ export default function Hero() {
 
   return (
     <div className="relative h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-black select-none">
-      {/* The canvas is now the primary background */}
-      <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full z-0"></canvas>
+      {/* The 3D WebGL ripples wave dotted surface is now the primary background */}
+      <DottedSurface className="absolute inset-0 w-full h-full -z-10" />
       
       {/* Overlay HTML Content */}
       <div className="relative z-10 text-center p-6 max-w-4xl mx-auto flex flex-col items-center">
@@ -229,7 +52,7 @@ export default function Hero() {
           variants={fadeUpVariants}
           initial="hidden"
           animate="visible"
-          className="text-5xl md:text-8xl font-black tracking-tight mb-6 leading-none"
+          className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight mb-6 leading-none"
         >
           <span className="text-white">{firstWord}</span> <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">{restWords}</span>
         </motion.h1>
