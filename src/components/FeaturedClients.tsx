@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { supabase } from "@/utils/supabase/client";
 
 type FeaturedClient = {
   id: string;
   name: string;
+  role: string | null;
   description: string;
   photo_url: string;
   created_at: string;
@@ -94,7 +95,7 @@ export default function FeaturedClients() {
                 whileHover={{ y: -8, borderColor: "rgba(14, 165, 233, 0.3)", boxShadow: "0 0 30px rgba(14, 165, 233, 0.1)" }}
                 className="group bg-sky-500/[0.02] border border-sky-500/10 rounded-3xl p-8 backdrop-blur-2xl transition-all duration-500 relative flex flex-col items-center text-center shadow-[0_0_20px_rgba(14,165,233,0.05)] overflow-hidden"
               >
-                {/* Visual Glass blue back-glow on card hover */}
+                {/* Visual Glass blue back-glow on hover */}
                 <div className="absolute inset-0 bg-gradient-to-b from-sky-500/0 to-sky-500/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
                 {/* Client Avatar Frame */}
@@ -108,10 +109,17 @@ export default function FeaturedClients() {
                   </div>
                 </div>
 
-                {/* Client Name */}
-                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-accent transition-colors tracking-tight">
-                  {client.name}
-                </h3>
+                {/* Name & Role (Founder, CEO, etc.) */}
+                <div className="mb-4">
+                  <h3 className="text-xl font-bold text-white group-hover:text-accent transition-colors tracking-tight">
+                    {client.name}
+                  </h3>
+                  {client.role && (
+                    <span className="text-[10px] text-sky-400/60 font-mono tracking-widest uppercase block mt-1">
+                      {client.role}
+                    </span>
+                  )}
+                </div>
 
                 {/* Client Unique Font Styled Description */}
                 <p className="font-serif italic text-sky-200/90 text-sm tracking-wide leading-relaxed font-light">

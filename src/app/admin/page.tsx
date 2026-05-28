@@ -41,10 +41,12 @@ export default function AdminDashboard() {
   // Featured Clients States
   const [featuredClients, setFeaturedClients] = useState<any[]>([]);
   const [clientName, setClientName] = useState("");
+  const [clientRole, setClientRole] = useState("");
   const [clientDesc, setClientDesc] = useState("");
   const [clientPhotoFile, setClientPhotoFile] = useState<File | null>(null);
   const [clientPhotoPreview, setClientPhotoPreview] = useState<string | null>(null);
   const [savingClient, setSavingClient] = useState(false);
+  const [editingClientId, setEditingClientId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAdmin) {
@@ -150,46 +152,96 @@ export default function AdminDashboard() {
 
   const handleAddFeaturedClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clientName || !clientDesc || !clientPhotoFile) {
-      alert("Please fill all fields and upload a photo.");
+    if (!clientName || !clientDesc) {
+      alert("Please fill all text fields.");
+      return;
+    }
+
+    if (!editingClientId && !clientPhotoFile) {
+      alert("Please select a client photo to upload.");
       return;
     }
 
     setSavingClient(true);
     try {
-      const fileExt = clientPhotoFile.name.split('.').pop();
-      const filePath = `featured-clients/${Date.now()}-${Math.random()}.${fileExt}`;
+      let photoUrl = clientPhotoPreview || "";
 
-      const { error: uploadError } = await supabase.storage
-        .from('studio-assets')
-        .upload(filePath, clientPhotoFile);
+      // Upload photo if a new one is selected
+      if (clientPhotoFile) {
+        const fileExt = clientPhotoFile.name.split('.').pop();
+        const filePath = `featured-clients/${Date.now()}-${Math.random()}.${fileExt}`;
 
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from('studio-assets')
+          .upload(filePath, clientPhotoFile);
 
-      const { data: urlData } = supabase.storage.from('studio-assets').getPublicUrl(filePath);
-      const photoUrl = urlData.publicUrl;
+        if (uploadError) throw uploadError;
 
-      const { error } = await supabase
-        .from("featured_clients")
-        .insert([{ name: clientName, description: clientDesc, photo_url: photoUrl }]);
+        const { data: urlData } = supabase.storage.from('studio-assets').getPublicUrl(filePath);
+        photoUrl = urlData.publicUrl;
+      }
 
-      if (error) throw error;
+      const clientData = {
+        name: clientName.trim(),
+        role: clientRole.trim() || null,
+        description: clientDesc.trim(),
+        photo_url: photoUrl,
+      };
 
+      if (editingClientId) {
+        // Update mode
+        const { error } = await supabase
+          .from("featured_clients")
+          .update(clientData)
+          .eq("id", editingClientId);
+
+        if (error) throw error;
+      } else {
+        // Insert mode
+        const { error } = await supabase
+          .from("featured_clients")
+          .insert([clientData]);
+
+        if (error) throw error;
+      }
+
+      // Reset Form State
       setClientName("");
+      setClientRole("");
       setClientDesc("");
       setClientPhotoFile(null);
       setClientPhotoPreview(null);
+      setEditingClientId(null);
 
+      // Reload list
       const { data } = await supabase.from("featured_clients").select("*").order("created_at", { ascending: false });
       if (data) setFeaturedClients(data);
 
-      alert("Featured client added successfully!");
+      alert(editingClientId ? "Featured client updated successfully!" : "Featured client added successfully!");
     } catch (err: any) {
       console.error(err);
-      alert("Failed to add featured client: " + (err.message || err));
+      alert("Failed to save featured client: " + (err.message || err));
     } finally {
       setSavingClient(false);
     }
+  };
+
+  const handleEditFeaturedClient = (client: any) => {
+    setClientName(client.name);
+    setClientRole(client.role || "");
+    setClientDesc(client.description);
+    setClientPhotoPreview(client.photo_url);
+    setClientPhotoFile(null); // Keep existing unless they pick a new file
+    setEditingClientId(client.id);
+  };
+
+  const handleCancelClientEdit = () => {
+    setClientName("");
+    setClientRole("");
+    setClientDesc("");
+    setClientPhotoFile(null);
+    setClientPhotoPreview(null);
+    setEditingClientId(null);
   };
 
   const handleDeleteFeaturedClient = async (id: string) => {
@@ -198,6 +250,9 @@ export default function AdminDashboard() {
       const { error } = await supabase.from("featured_clients").delete().eq("id", id);
       if (error) throw error;
       setFeaturedClients(prev => prev.filter(c => c.id !== id));
+      if (editingClientId === id) {
+        handleCancelClientEdit();
+      }
       alert("Featured client deleted!");
     } catch (err) {
       console.error(err);
@@ -807,9 +862,21 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Add Featured Client Form */}
+                  {/* Add/Edit Featured Client Form */}
                   <div className="md:col-span-1 bg-black/30 p-5 rounded-2xl border border-white/5 space-y-4">
-                    <h4 className="text-sm font-semibold text-white">Add New Client Highlight</h4>
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm font-semibold text-white">
+                        {editingClientId ? "Edit Client Highlight" : "Add New Client Highlight"}
+                      </h4>
+                      {editingClientId && (
+                        <button
+                          onClick={handleCancelClientEdit}
+                          className="text-[10px] uppercase font-bold text-red-400 hover:text-red-300 cursor-pointer"
+                        >
+                          Cancel Edit
+                        </button>
+                      )}
+                    </div>
                     
                     <form onSubmit={handleAddFeaturedClient} className="space-y-4">
                       <div>
@@ -819,7 +886,19 @@ export default function AdminDashboard() {
                           type="text"
                           value={clientName}
                           onChange={(e) => setClientName(e.target.value)}
-                          placeholder="e.g. John Doe, CEO of Alpha"
+                          placeholder="e.g. John Doe"
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider block mb-1">Role / Title</label>
+                        <input
+                          required
+                          type="text"
+                          value={clientRole}
+                          onChange={(e) => setClientRole(e.target.value)}
+                          placeholder="e.g. Founder of Srijan Institute"
                           className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-xs"
                         />
                       </div>
@@ -845,7 +924,7 @@ export default function AdminDashboard() {
                             </div>
                           )}
                           <input
-                            required
+                            required={!editingClientId}
                             type="file"
                             accept="image/*"
                             onChange={handleFeaturedClientPhotoChange}
@@ -854,14 +933,25 @@ export default function AdminDashboard() {
                         </div>
                       </div>
 
-                      <button
-                        type="submit"
-                        disabled={savingClient}
-                        className="w-full bg-accent hover:bg-accent/90 text-white font-semibold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        {savingClient ? <Loader2 className="animate-spin" size={12} /> : <Plus size={12} />}
-                        Add Featured Client
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="submit"
+                          disabled={savingClient}
+                          className="flex-1 bg-accent hover:bg-accent/90 text-white font-semibold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          {savingClient ? <Loader2 className="animate-spin" size={12} /> : editingClientId ? <Save size={12} /> : <Plus size={12} />}
+                          {editingClientId ? "Save Changes" : "Add Featured Client"}
+                        </button>
+                        {editingClientId && (
+                          <button
+                            type="button"
+                            onClick={handleCancelClientEdit}
+                            className="bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold py-2.5 px-3 rounded-xl transition-all text-xs cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
                     </form>
                   </div>
 
@@ -879,16 +969,28 @@ export default function AdminDashboard() {
                             
                             <div className="flex-1 min-w-0">
                               <h5 className="text-white font-bold text-xs truncate">{client.name}</h5>
-                              <p className="font-serif italic text-sky-200/90 text-[10px] leading-relaxed mt-1 line-clamp-3">"{client.description}"</p>
+                              {client.role && (
+                                <span className="text-[9px] text-sky-400/60 font-mono uppercase tracking-wider block mt-0.5">{client.role}</span>
+                              )}
+                              <p className="font-serif italic text-sky-200/90 text-[10px] leading-relaxed mt-1.5 line-clamp-2">"{client.description}"</p>
                             </div>
 
-                            <button
-                              onClick={() => handleDeleteFeaturedClient(client.id)}
-                              className="absolute top-2 right-2 text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                              title="Delete Highlight"
-                            >
-                              <Trash2 size={12} />
-                            </button>
+                            <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleEditFeaturedClient(client)}
+                                className="text-accent hover:text-accent/80 p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                                title="Edit Highlight"
+                              >
+                                <Edit3 size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteFeaturedClient(client.id)}
+                                className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                                title="Delete Highlight"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
                           </div>
                         ))}
 
