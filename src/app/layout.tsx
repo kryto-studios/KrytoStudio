@@ -5,6 +5,7 @@ import SmoothScroll from "@/components/SmoothScroll";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { StudioProvider } from "@/context/StudioContext";
+import { DottedSurface } from "@/components/ui/dotted-surface";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -28,12 +29,16 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-screen flex flex-col bg-background text-foreground">
+      <body className="min-h-screen flex flex-col bg-[#030303] text-foreground relative">
+        {/* Global WebGL 3D dynamic ripples dotted background layer */}
+        <DottedSurface className="size-full opacity-60" />
+        
         <StudioProvider>
           <SmoothScroll>
             <Navbar />
-            <main className="flex-1 w-full flex flex-col">
+            <main className="flex-1 w-full flex flex-col relative z-10">
               {children}
             </main>
             <Footer />

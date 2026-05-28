@@ -50,24 +50,37 @@ export default function Hero() {
 
       update() {
         if (!canvas) return;
-        if (this.x > canvas.width || this.x < 0) {
+        
+        // Strictly bounce off boundary edges and clamp coordinates to keep particles inside the screen!
+        if (this.x < this.size) {
+          this.x = this.size;
+          this.directionX = -this.directionX;
+        } else if (this.x > canvas.width - this.size) {
+          this.x = canvas.width - this.size;
           this.directionX = -this.directionX;
         }
-        if (this.y > canvas.height || this.y < 0) {
+        
+        if (this.y < this.size) {
+          this.y = this.size;
+          this.directionY = -this.directionY;
+        } else if (this.y > canvas.height - this.size) {
+          this.y = canvas.height - this.size;
           this.directionY = -this.directionY;
         }
 
-        // Mouse collision detection
+        // Mouse collision detection - dynamic gentle push that maintains mesh links
         if (mouse.x !== null && mouse.y !== null) {
           let dx = mouse.x - this.x;
           let dy = mouse.y - this.y;
           let distance = Math.sqrt(dx * dx + dy * dy);
-          if (distance < mouse.radius + this.size) {
+          if (distance < mouse.radius) {
             const forceDirectionX = dx / distance;
             const forceDirectionY = dy / distance;
             const force = (mouse.radius - distance) / mouse.radius;
-            this.x -= forceDirectionX * force * 5;
-            this.y -= forceDirectionY * force * 5;
+            
+            // Gentler push force (2.2 instead of 5) to keep connections from tearing completely apart
+            this.x -= forceDirectionX * force * 2.2;
+            this.y -= forceDirectionY * force * 2.2;
           }
         }
 
