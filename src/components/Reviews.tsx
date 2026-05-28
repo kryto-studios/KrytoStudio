@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Star, ShieldCheck, Loader2, MessageSquare, Upload, X, Edit3, Trash2 } from "lucide-react";
 import { supabase } from "@/utils/supabase/client";
 import { useStudio } from "@/context/StudioContext";
-import Image from "next/image";
 
 type Review = {
   id: string;
@@ -34,6 +33,9 @@ export default function Reviews() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Get Google/Gmail avatar from auth metadata
+  const googleAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
 
   useEffect(() => {
     fetchReviews();
@@ -87,13 +89,13 @@ export default function Reviews() {
             setName(existing.name);
             setRating(existing.rating);
             setContent(existing.content);
-            setAvatarPreview(existing.avatar_url);
+            setAvatarPreview(existing.avatar_url || googleAvatar);
           }
         } else {
           setUserReview(null);
           if (!showForm) {
             setName(user.user_metadata?.full_name || user.user_metadata?.name || "");
-            setAvatarPreview(user.user_metadata?.avatar_url || null);
+            setAvatarPreview(googleAvatar);
           }
         }
       }
@@ -136,6 +138,11 @@ export default function Reviews() {
         if (urlData?.publicUrl) {
           finalAvatarUrl = urlData.publicUrl;
         }
+      }
+
+      // If no custom avatar uploaded, fallback to Gmail avatar
+      if (!finalAvatarUrl) {
+        finalAvatarUrl = googleAvatar;
       }
 
       const reviewData = {
@@ -190,7 +197,7 @@ export default function Reviews() {
       setUserReview(null);
       setContent("");
       setRating(5);
-      setAvatarPreview(user.user_metadata?.avatar_url || null);
+      setAvatarPreview(googleAvatar);
       setShowForm(false);
       await fetchReviews();
       alert("Review deleted successfully!");
@@ -255,7 +262,7 @@ export default function Reviews() {
                       setIsEditing(true);
                       setShowForm(true);
                     }}
-                    className="bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-8 rounded-full text-sm transition-all border border-white/10 flex items-center gap-2 cursor-pointer"
+                    className="bg-white/10 hover:bg-white/20 text-white font-semibold py-3.5 px-8 rounded-full text-sm transition-all border border-white/15 flex items-center gap-2 cursor-pointer hover:border-accent/40"
                   >
                     <Edit3 size={16} className="text-accent" />
                     Modify Your Review
@@ -273,7 +280,7 @@ export default function Reviews() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="max-w-xl mx-auto mb-16 bg-white/[0.02] border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-xl shadow-xl overflow-hidden"
+              className="max-w-xl mx-auto mb-16 bg-zinc-950/70 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-2xl shadow-2xl overflow-hidden shadow-black/80"
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -303,15 +310,15 @@ export default function Reviews() {
                         onClick={() => setRating(star)}
                         onMouseEnter={() => setHoverRating(star)}
                         onMouseLeave={() => setHoverRating(null)}
-                        className="text-2xl text-gray-600 hover:scale-110 transition-transform cursor-pointer"
+                        className="text-2xl hover:scale-115 transition-transform cursor-pointer"
                       >
                         <Star 
-                          size={28}
+                          size={32}
                           className={`${
                             star <= (hoverRating !== null ? hoverRating : rating)
-                              ? "fill-yellow-500 text-yellow-500"
-                              : "text-gray-600"
-                          } transition-colors duration-150`}
+                              ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]"
+                              : "text-zinc-700"
+                          } transition-all duration-150`}
                         />
                       </button>
                     ))}
@@ -322,11 +329,13 @@ export default function Reviews() {
                 <div className="flex flex-col sm:flex-row items-center gap-5">
                   {/* PFP preview & upload */}
                   <div className="relative group shrink-0">
-                    <div className="w-16 h-16 rounded-full border-2 border-white/10 overflow-hidden relative bg-zinc-800">
+                    <div className="w-16 h-16 rounded-full border-2 border-white/10 overflow-hidden relative bg-zinc-800 flex items-center justify-center">
                       {avatarPreview ? (
-                        <Image src={avatarPreview} alt="Avatar Preview" fill className="object-cover" />
+                        <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-mono">PFP</div>
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-mono uppercase bg-zinc-900">
+                          {name ? name[0] : "?"}
+                        </div>
                       )}
                     </div>
                     <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-full text-white cursor-pointer transition-opacity">
@@ -349,7 +358,7 @@ export default function Reviews() {
                       value={name} 
                       onChange={(e) => setName(e.target.value)} 
                       placeholder="Your Name (e.g. Rahul Sharma)"
-                      className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-sm"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl py-3.5 px-4 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-sm"
                     />
                   </div>
                 </div>
@@ -363,7 +372,7 @@ export default function Reviews() {
                     value={content} 
                     onChange={(e) => setContent(e.target.value)} 
                     placeholder="Share your detailed experience working with us..."
-                    className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-sm leading-relaxed"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl py-3.5 px-4 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 text-sm leading-relaxed"
                   />
                 </div>
 
@@ -394,48 +403,48 @@ export default function Reviews() {
 
         {/* Current User's active review card highlight */}
         {userReview && !isEditing && (
-          <div className="max-w-2xl mx-auto mb-12 bg-accent/[0.03] border border-accent/20 rounded-3xl p-6 flex flex-col md:flex-row gap-5 relative overflow-hidden backdrop-blur-md shadow-lg shadow-accent/5">
-            <div className="absolute top-0 right-0 bg-accent text-[9px] font-bold tracking-widest text-white px-3 py-1 rounded-bl-xl uppercase">
+          <div className="max-w-2xl mx-auto mb-16 bg-[#09090b]/80 border-2 border-accent/30 rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row gap-5 relative overflow-hidden backdrop-blur-md shadow-2xl shadow-accent/5">
+            <div className="absolute top-0 right-0 bg-accent text-[9px] font-bold tracking-widest text-white px-4 py-1.5 rounded-bl-xl uppercase">
               Your Review
             </div>
 
-            <div className="w-12 h-12 rounded-full overflow-hidden relative bg-zinc-800 shrink-0 border border-white/10">
+            <div className="w-14 h-14 rounded-full overflow-hidden relative bg-zinc-800 shrink-0 border border-white/15 shadow-md shadow-black flex items-center justify-center">
               {userReview.avatar_url ? (
-                <Image src={userReview.avatar_url} alt="My avatar" fill className="object-cover" />
+                <img src={userReview.avatar_url} alt="My avatar" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-mono uppercase">{userReview.name[0]}</div>
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm font-mono uppercase bg-zinc-900">{userReview.name[0]}</div>
               )}
             </div>
 
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 space-y-3">
               <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="text-white font-bold text-base flex items-center gap-1.5">
+                <h4 className="text-white font-extrabold text-base flex items-center gap-1.5 tracking-tight">
                   {userReview.name}
-                  <ShieldCheck size={14} className="text-accent" title="Verified Reviewer" />
+                  <ShieldCheck size={16} className="text-accent fill-accent/20" title="Verified Reviewer" />
                 </h4>
-                <div className="flex text-yellow-500">
+                <div className="flex text-amber-400">
                   {Array.from({ length: userReview.rating }).map((_, i) => (
-                    <Star key={i} size={12} className="fill-current" />
+                    <Star key={i} size={15} className="fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]" />
                   ))}
                 </div>
               </div>
-              <p className="text-gray-300 text-sm leading-relaxed italic font-light">"{userReview.content}"</p>
+              <p className="text-gray-250 text-sm leading-relaxed italic font-light">"{userReview.content}"</p>
               
-              <div className="flex gap-4 pt-2">
+              <div className="flex gap-4 pt-2 border-t border-white/5">
                 <button 
                   onClick={() => {
                     setIsEditing(true);
                     setShowForm(true);
                   }}
-                  className="text-xs text-accent hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                  className="text-xs text-accent hover:underline flex items-center gap-1 cursor-pointer font-semibold hover:text-accent/80 transition-colors"
                 >
-                  <Edit3 size={12} /> Edit Review
+                  <Edit3 size={13} /> Edit Review
                 </button>
                 <button 
                   onClick={handleDeleteReview}
-                  className="text-xs text-red-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                  className="text-xs text-red-450 hover:underline flex items-center gap-1 cursor-pointer font-semibold hover:text-red-400 transition-colors"
                 >
-                  <Trash2 size={12} /> Delete Review
+                  <Trash2 size={13} /> Delete Review
                 </button>
               </div>
             </div>
@@ -463,22 +472,29 @@ export default function Reviews() {
               // Skip showing own review in the grid again since it is highlighted above
               if (userReview && rev.id === userReview.id) return null;
 
+              // Fallback default image for reviews grid
+              const finalAvatar = rev.avatar_url;
+
               return (
                 <motion.div
                   key={rev.id}
                   variants={itemVariants}
-                  whileHover={{ y: -6, borderColor: "rgba(255,255,255,0.1)" }}
-                  className="bg-white/[0.01] border border-white/5 hover:bg-white/[0.02] p-6 rounded-3xl flex flex-col justify-between transition-all duration-300 group"
+                  whileHover={{ y: -6, borderColor: "rgba(255,255,255,0.12)", backgroundColor: "rgba(255,255,255,0.02)" }}
+                  className="bg-white/[0.01] border border-white/5 p-6 rounded-3xl flex flex-col justify-between transition-all duration-300 group"
                 >
                   <div className="space-y-4">
                     {/* Stars and date */}
                     <div className="flex justify-between items-center gap-2">
-                      <div className="flex text-yellow-500">
+                      <div className="flex text-amber-400">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <Star 
                             key={i} 
                             size={14} 
-                            className={`${i < rev.rating ? "fill-yellow-500 animate-pulse" : "text-zinc-800"}`} 
+                            className={`${
+                              i < rev.rating 
+                                ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.7)] animate-pulse" 
+                                : "text-zinc-800"
+                            }`} 
                           />
                         ))}
                       </div>
@@ -495,17 +511,17 @@ export default function Reviews() {
 
                   {/* Reviewer details */}
                   <div className="flex items-center gap-3.5 pt-6 mt-6 border-t border-white/5">
-                    <div className="w-10 h-10 rounded-full overflow-hidden relative bg-zinc-800 border border-white/5 shadow-inner">
-                      {rev.avatar_url ? (
-                        <Image src={rev.avatar_url} alt={rev.name} fill className="object-cover" />
+                    <div className="w-10 h-10 rounded-full overflow-hidden relative bg-zinc-800 border border-white/5 shadow-inner flex items-center justify-center">
+                      {finalAvatar ? (
+                        <img src={finalAvatar} alt={rev.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-mono uppercase">{rev.name[0]}</div>
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-mono uppercase bg-zinc-900">{rev.name[0]}</div>
                       )}
                     </div>
                     <div>
                       <h4 className="text-white font-semibold text-sm flex items-center gap-1 group-hover:text-accent transition-colors">
                         {rev.name}
-                        <ShieldCheck size={13} className="text-accent" title="Verified Reviewer" />
+                        <ShieldCheck size={13} className="text-accent fill-accent/10" title="Verified Reviewer" />
                       </h4>
                       <span className="text-[10px] text-gray-500 font-medium tracking-wide uppercase">Verified Client</span>
                     </div>

@@ -65,7 +65,6 @@ export default function Navbar() {
   const baseLinks = [
     { name: "Home", href: "/" },
     { name: "Services", href: "/#services" },
-    { name: "Reviews", href: "/#reviews" },
     { name: "Portfolio", href: "/portfolio" },
     { name: "Appointment", href: "/appointment" },
     { name: "Contact", href: "/contact" },
