@@ -753,7 +753,7 @@ export default function AdminDashboard() {
                   <p className="text-gray-400 text-sm">Grant or revoke permission for clients to write a review.</p>
                 </div>
 
-                <form onSubmit={handleAddPermissionEmail} className="flex gap-3 bg-black/30 p-4 rounded-xl border border-white/5">
+                <form onSubmit={handleAddPermissionEmail} className="flex flex-col sm:flex-row gap-3 bg-black/30 p-4 rounded-xl border border-white/5">
                   <input
                     required
                     type="email"
@@ -765,7 +765,7 @@ export default function AdminDashboard() {
                   <button
                     type="submit"
                     disabled={savingPermission}
-                    className="bg-accent hover:bg-accent/90 text-white font-medium px-4 py-2 rounded-xl transition-all text-xs flex items-center gap-1 shrink-0 cursor-pointer"
+                    className="bg-accent hover:bg-accent/90 text-white font-medium px-4 py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1 shrink-0 cursor-pointer w-full sm:w-auto"
                   >
                     {savingPermission ? <Loader2 className="animate-spin" size={12} /> : <Plus size={12} />}
                     Grant Permission
@@ -776,14 +776,14 @@ export default function AdminDashboard() {
                   <h4 className="text-sm font-semibold text-gray-400 mb-3 block">Authorized Client Emails ({reviewPermissions.length})</h4>
                   <div className="space-y-2">
                     {reviewPermissions.map((perm) => (
-                      <div key={perm.id} className="flex items-center justify-between bg-white/[0.01] border border-white/5 p-3 rounded-xl hover:bg-white/[0.02] transition-colors">
-                        <div className="flex items-center gap-2">
-                          <ShieldCheck size={14} className="text-accent" />
-                          <span className="text-white text-xs md:text-sm truncate max-w-[200px] md:max-w-xs">{perm.email}</span>
+                      <div key={perm.id} className="flex items-center justify-between bg-white/[0.01] border border-white/5 p-3 rounded-xl hover:bg-white/[0.02] transition-colors gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ShieldCheck size={14} className="text-accent shrink-0" />
+                          <span className="text-white text-xs md:text-sm truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs">{perm.email}</span>
                         </div>
                         <button
                           onClick={() => handleDeletePermissionEmail(perm.id)}
-                          className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                          className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer shrink-0"
                           title="Revoke Permission"
                         >
                           <Trash2 size={14} />
@@ -807,36 +807,37 @@ export default function AdminDashboard() {
                 <div className="bg-black/20 border border-white/5 rounded-2xl p-4 overflow-hidden max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-850 space-y-3">
                   {allReviews.map((rev) => (
                     <div key={rev.id} className="bg-white/[0.01] border border-white/5 p-4 rounded-xl space-y-3 hover:bg-white/[0.02] transition-colors relative group">
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-2.5">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full overflow-hidden relative bg-zinc-800 border border-white/10 shrink-0">
                             {rev.avatar_url ? (
                               <img src={rev.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-mono uppercase">{rev.name[0]}</div>
+                              <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-mono uppercase bg-zinc-900">{rev.name[0]}</div>
                             )}
                           </div>
-                          <div>
-                            <h4 className="text-white font-semibold text-xs md:text-sm flex items-center gap-1">
+                          <div className="min-w-0">
+                            <h4 className="text-white font-semibold text-xs sm:text-sm flex items-center gap-1">
                               {rev.name}
-                              <ShieldCheck size={12} className="text-accent" />
+                              <ShieldCheck size={12} className="text-accent shrink-0" />
                             </h4>
-                            <span className="text-[10px] text-gray-500 font-mono block truncate max-w-[150px]">{rev.email}</span>
+                            <span className="text-[10px] text-gray-500 font-mono block truncate max-w-[140px] xs:max-w-[190px]">{rev.email}</span>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <div className="flex text-yellow-500 shrink-0">
+                        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t border-white/5 sm:border-0">
+                          <div className="flex text-yellow-500 gap-0.5 shrink-0">
                             {Array.from({ length: rev.rating }).map((_, i) => (
-                              <Star key={i} size={10} className="fill-current" />
+                              <Star key={i} size={11} className="fill-current" />
                             ))}
                           </div>
                           <button
                             onClick={() => handleDeleteReview(rev.id)}
-                            className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                            className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-1 text-[11px] sm:text-xs"
                             title="Delete Review"
                           >
                             <Trash2 size={13} />
+                            <span className="sm:hidden font-medium">Delete</span>
                           </button>
                         </div>
                       </div>
@@ -975,7 +976,7 @@ export default function AdminDashboard() {
                               <p className="font-serif italic text-sky-200/90 text-[10px] leading-relaxed mt-1.5 line-clamp-2">"{client.description}"</p>
                             </div>
 
-                            <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-2 right-2 flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                               <button
                                 onClick={() => handleEditFeaturedClient(client)}
                                 className="text-accent hover:text-accent/80 p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
