@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Zap } from 'lucide-react';
 import { useStudio } from '@/context/StudioContext';
+import { LampContainer } from "@/components/ui/lamp";
 import { DottedSurface } from "@/components/ui/dotted-surface";
 import { cn } from '@/lib/utils';
 
@@ -18,7 +19,7 @@ export default function Hero() {
       transition: {
         delay: i * 0.2 + 0.5,
         duration: 0.8,
-        ease: "easeInOut",
+        ease: "easeInOut" as any,
       },
     }),
   };
@@ -29,19 +30,11 @@ export default function Hero() {
   const bio = settings?.bio || 'An intelligent, adaptive framework for creating fluid digital experiences that feel alive and respond to user interaction in real-time.';
 
   return (
-    <DottedSurface className="size-full">
-      <div className="relative h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-black select-none pointer-events-auto">
-        <div
-          aria-hidden="true"
-          className={cn(
-            'pointer-events-none absolute -top-10 left-1/2 size-full -translate-x-1/2 rounded-full',
-            'bg-[radial-gradient(ellipse_at_center,--theme(--color-foreground/.1),transparent_50%)]',
-            'blur-[30px]',
-          )}
-        />
-        
+    <div className="relative min-h-screen w-full bg-black overflow-hidden flex flex-col justify-start">
+      <DottedSurface className="absolute inset-0 z-10 opacity-35 pointer-events-none" />
+      <LampContainer className="bg-black min-h-screen w-full relative z-0">
         {/* Overlay HTML Content */}
-        <div className="relative z-10 text-center p-6 max-w-4xl mx-auto flex flex-col items-center">
+        <div className="relative z-10 text-center max-w-4xl mx-auto flex flex-col items-center select-none pointer-events-auto">
           <motion.div
             custom={0}
             variants={fadeUpVariants}
@@ -81,25 +74,25 @@ export default function Hero() {
             initial="hidden"
             animate="visible"
           >
-            <a href="/appointment" className="px-8 py-4 bg-white text-black font-semibold rounded-lg shadow-lg hover:bg-gray-200 transition-colors duration-300 flex items-center gap-2 mx-auto cursor-pointer">
+            <a href="/appointment" className="px-8 py-4 bg-white text-black font-semibold rounded-lg shadow-lg hover:bg-gray-200 transition-colors duration-300 flex items-center gap-2 mx-auto cursor-pointer z-50 relative">
               Explore the Engine
               <ArrowRight className="h-5 w-5" />
             </a>
           </motion.div>
         </div>
+      </LampContainer>
 
-        {/* Elegant Scroll Down Indicator */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 pointer-events-none">
-          <span className="text-[8px] sm:text-[10px] text-purple-400/40 uppercase tracking-widest font-mono">SCROLL SYSTEM</span>
-          <div className="w-[1px] h-12 bg-purple-500/20 overflow-hidden relative">
-            <motion.div 
-              animate={{ y: ["-100%", "100%"] }}
-              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-              className="w-full h-full bg-purple-400 absolute top-0 left-0"
-            />
-          </div>
+      {/* Elegant Scroll Down Indicator (Absolute to outer viewport container) */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2 pointer-events-none">
+        <span className="text-[8px] sm:text-[10px] text-purple-400/40 uppercase tracking-widest font-mono">SCROLL SYSTEM</span>
+        <div className="w-[1px] h-12 bg-purple-500/20 overflow-hidden relative">
+          <motion.div 
+            animate={{ y: ["-100%", "100%"] }}
+            transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+            className="w-full h-full bg-purple-400 absolute top-0 left-0"
+          />
         </div>
       </div>
-    </DottedSurface>
+    </div>
   );
 }

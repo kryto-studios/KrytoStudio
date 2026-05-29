@@ -420,7 +420,7 @@ export default function Reviews() {
               <div className="flex items-center gap-2 flex-wrap">
                 <h4 className="text-white font-extrabold text-base flex items-center gap-1.5 tracking-tight">
                   {userReview.name}
-                  <ShieldCheck size={16} className="text-accent fill-accent/20" title="Verified Reviewer" />
+                  <ShieldCheck size={16} className="text-accent fill-accent/20" />
                 </h4>
                 <div className="flex text-amber-400">
                   {Array.from({ length: userReview.rating }).map((_, i) => (
@@ -521,7 +521,7 @@ export default function Reviews() {
                     <div>
                       <h4 className="text-white font-semibold text-sm flex items-center gap-1 group-hover:text-accent transition-colors">
                         {rev.name}
-                        <ShieldCheck size={13} className="text-accent fill-accent/10" title="Verified Reviewer" />
+                        <ShieldCheck size={13} className="text-accent fill-accent/10" />
                       </h4>
                       <span className="text-[10px] text-gray-500 font-medium tracking-wide uppercase">Verified Client</span>
                     </div>

@@ -176,7 +176,7 @@ export default function AetherFlowHero() {
       transition: {
         delay: i * 0.2 + 0.5,
         duration: 0.8,
-        ease: "easeInOut",
+        ease: "easeInOut" as any,
       },
     }),
   };

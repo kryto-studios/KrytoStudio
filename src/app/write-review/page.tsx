@@ -210,7 +210,7 @@ export default function WriteReviewPage() {
       setUserReview(null);
       setContent("");
       setRating(5);
-      setAvatarPreview(user.user_metadata?.avatar_url || null);
+      setAvatarPreview(user?.user_metadata?.avatar_url || null);
       alert("Review deleted successfully!");
     } catch (err: any) {
       console.error(err);

@@ -11,23 +11,23 @@ export default function CaseStudies() {
 
   const itemVariants = {
     hidden: { opacity: 0, y: 50 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" as any } }
   };
 
   // Stack image animation variants for "Fan Out" effect on hover
   const fanLeft = {
     rest: { rotate: -4, x: -10, y: 5, zIndex: 10 },
-    hover: { rotate: -15, x: -130, y: -10, scale: 1.05, zIndex: 30, transition: { type: "spring", stiffness: 100, damping: 15 } }
+    hover: { rotate: -15, x: -130, y: -10, scale: 1.05, zIndex: 30, transition: { type: "spring", stiffness: 100, damping: 15 } as any }
   };
 
   const fanRight = {
     rest: { rotate: 4, x: 10, y: 5, zIndex: 10 },
-    hover: { rotate: 15, x: 130, y: -10, scale: 1.05, zIndex: 30, transition: { type: "spring", stiffness: 100, damping: 15 } }
+    hover: { rotate: 15, x: 130, y: -10, scale: 1.05, zIndex: 30, transition: { type: "spring", stiffness: 100, damping: 15 } as any }
   };
 
   const fanCenter = {
     rest: { rotate: 0, x: 0, y: 0, zIndex: 20 },
-    hover: { rotate: 0, x: 0, y: -20, scale: 1.08, zIndex: 40, transition: { type: "spring", stiffness: 100, damping: 15 } }
+    hover: { rotate: 0, x: 0, y: -20, scale: 1.08, zIndex: 40, transition: { type: "spring", stiffness: 100, damping: 15 } as any }
   };
 
   return (

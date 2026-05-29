@@ -980,7 +980,7 @@ export default function PipelineMatrixPage() {
                 ))}
               </thead>
               <tbody>
-                <AnimatePresence layout>
+                <AnimatePresence>
                   {table.getRowModel().rows.map((row) => (
                     <motion.tr 
                       key={row.id} 
