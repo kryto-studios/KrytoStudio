@@ -1,5 +1,4 @@
 'use client';
-
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
 import React, { useEffect, useRef } from 'react';
@@ -8,8 +7,7 @@ import * as THREE from 'three';
 type DottedSurfaceProps = Omit<React.ComponentProps<'div'>, 'ref'>;
 
 export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
-	const themeContext = useTheme();
-	const theme = themeContext ? themeContext.theme : 'dark';
+	const { theme } = useTheme();
 
 	const containerRef = useRef<HTMLDivElement>(null);
 	const sceneRef = useRef<{
@@ -65,12 +63,10 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
 				const z = iy * SEPARATION - (AMOUNTY * SEPARATION) / 2;
 
 				positions.push(x, y, z);
-				
-				// Standard cyber aesthetic particle color: light purple/neon violet or glowing white
-				if (theme === 'light') {
-					colors.push(0, 0, 0);
+				if (theme === 'dark') {
+					colors.push(200, 200, 200);
 				} else {
-					colors.push(0.7, 0.5, 1.0); // Neon Violet/Purple particles instead of plain grey
+					colors.push(0, 0, 0);
 				}
 			}
 		}
@@ -119,6 +115,15 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
 			}
 
 			positionAttribute.needsUpdate = true;
+
+			// Update point sizes based on wave
+			const customMaterial = material as THREE.PointsMaterial & {
+				uniforms?: any;
+			};
+			if (!customMaterial.uniforms) {
+				// For dynamic size changes, we'd need a custom shader
+				// For now, keeping constant size for performance
+			}
 
 			renderer.render(scene, camera);
 			count += 0.1;
@@ -179,7 +184,7 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
 	return (
 		<div
 			ref={containerRef}
-			className={cn('pointer-events-none fixed inset-0 -z-10', className)}
+			className={cn('pointer-events-none fixed inset-0 -z-1', className)}
 			{...props}
 		/>
 	);
